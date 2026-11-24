@@ -15,7 +15,8 @@ Google Drive: DATABASE — Master Database (Google Sheets)  ← single source of
 Supabase project `database-portal` (Postgres + Auth + RLS, free tier, eu-central-1)
         │  supabase-js with the publishable key (public by design)
         ▼
-Static frontend on GitHub Pages (this repo)  — noindex, magic-link login
+Static frontend on GitHub Pages  — noindex, magic-link login
+https://cherepaniadmytro-blip.github.io/database-portal/
 ```
 
 ## Access levels
@@ -24,11 +25,13 @@ Static frontend on GitHub Pages (this repo)  — noindex, magic-link login
 |---|---|---|
 | Public / Guest | no login | records with Access Level `PUBLIC` in sections marked `public` |
 | Partner | invited by owner, magic link login | `PUBLIC` + `PARTNER` records in sections marked `public` or `partner` |
-| Owner | Dmytro | everything; edits records, sections, invitations |
+| Owner | Dmytro | everything; edits section visibility and invitations |
 
 Section visibility is controlled by the owner in table `section_access` (`public` / `partner` / `owner`).
-Sign-up is invite-only: a database trigger rejects any auth user whose email is not in `invited_emails`.
+Sign-up is invite-only: a database trigger rejects any auth user whose email is not in `invited_emails` with `Sign-up is invite-only`.
 The owner invites a partner by inserting their email into `invited_emails`; the partner then signs in with an email magic link / OTP.
+
+The sidebar is built from `section_access`, so a newly inserted section shows up without rebuilding the app. Guests only see sections with `visible_to = public`; partners also see `partner`; the owner sees every section.
 
 ## Database (see `supabase/migrations`)
 
@@ -40,12 +43,78 @@ The owner invites a partner by inserting their email into `invited_emails`; the 
 - `profiles`, `invited_emails` — users and invitations
 - RPC: `app_role()` → `owner | partner | public | none`, `is_owner()`, `last_sync()`
 
-## Frontend config
+## Run locally
 
-Copy `.env.example` to `.env`. Only the project URL and the publishable key are allowed in the frontend.
-Never use the `service_role` key outside the server-side sync.
+Requires Node.js 22.
+
+```bash
+cp .env.example .env
+npm ci
+npm test
+npm run dev
+```
+
+Open http://localhost:5173/database-portal/ . The dev server uses the same `/database-portal/` base path as GitHub Pages.
+
+`.env` may contain only the project URL and the publishable key from `.env.example`. Both are public by design; RLS is the access control. Never put the `service_role` key, or any other secret, in the frontend, in `.env`, or in git.
+
+`npm run build` typechecks and writes `dist/`. `npm run preview` serves that build.
+
+## Deploy
+
+Pushes to `main` run `.github/workflows/pages.yml`. The workflow builds the static app and deploys it to GitHub Pages. `actions/configure-pages` is called with `enablement: true` so Pages is turned on for the repository (GitHub Actions source). Pull requests run `.github/workflows/ci.yml` (`npm test` and `npm run build`).
+
+Live site: https://cherepaniadmytro-blip.github.io/database-portal/
+
+Client routes use the HTML5 history API. GitHub Pages has no server rewrites, so `public/404.html` sends unknown paths back to `index.html`, which restores the path before React Router starts. Magic-link tokens stay in the URL hash and are not part of the route.
+
+## Supabase Auth URLs
+
+The owner must set both of these in the Supabase dashboard, or magic links will be rejected:
+
+1. **Authentication → URL Configuration → Site URL**
+   `https://cherepaniadmytro-blip.github.io/database-portal/`
+2. **Authentication → URL Configuration → Redirect URLs**
+   `https://cherepaniadmytro-blip.github.io/database-portal/`
+
+For local sign-in, also add `http://localhost:5173/database-portal/` to Redirect URLs.
+
+The app uses the implicit magic-link flow, which works with the default Supabase email template (`{{ .ConfirmationURL }}`). The login form also accepts a 6-digit code. That code is delivered only if the Magic Link email template includes `{{ .Token }}`.
+
+## Invite a partner
+
+The owner email is seeded in the database (`invited_emails`) and is not stored in this repo. Sign in with that address, then open **Адміністрування**:
+
+- Change a section's visibility (`public` / `partner` / `owner`). The sidebar follows `section_access` on the next load.
+- Add a partner email and role (`partner` or `owner`), or remove one.
+- Read `sync_status` (attempts, errors, row counts). Guests never see this table; the dashboard clock uses `last_sync()`.
+
+The same invitation can be inserted in the SQL editor:
+
+```sql
+insert into public.invited_emails (email, role, note)
+values ('partner@example.com', 'partner', 'optional note');
+```
+
+The partner then opens the portal and requests a magic link. An address that is not in `invited_emails` is rejected. The login screen shows that as «Реєстрація лише за запрошенням» together with the server text `Sign-up is invite-only`.
+
+Removing an invitation blocks a future sign-up. It does not delete an account that already exists.
+
+## What the UI computes
+
+Dashboard figures are counted in the browser from the rows the current session is allowed to read:
+
+- total visible records
+- new today — `date_added` is today in Europe/Bratislava
+- updated today — `last_updated` is today and `date_added` is earlier
+- new jobs / partners / business opportunities — that section, status `NEW` or added today
+- top 10 — priority weight (P1 highest) × 10 + potential
+- latest `update_history` rows and `last_sync()`
+
+Section, search, and archive tables filter and sort on the client. CSV export downloads the current filtered rows (every page of that filter), with a UTF-8 BOM. New rows (`date_added` today) and updated rows (`last_updated` today, added earlier) are marked. Status colours: green VERIFIED/ACTIVE/COMPLETED, blue NEW, yellow NEEDS REVIEW, orange IN PROGRESS/CONTACTED/WAITING, red EXPIRED, grey ARCHIVED.
 
 ## Privacy
 
-- Add `<meta name="robots" content="noindex, nofollow">` and a `robots.txt` disallowing all.
+- `index.html` sends `<meta name="robots" content="noindex, nofollow">`.
+- `public/robots.txt` is `Disallow: /`.
 - noindex / hidden URLs are **not** security; access control is enforced by Supabase RLS.
