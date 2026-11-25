@@ -54,7 +54,7 @@ export function Layout() {
         <button type="button" className="backdrop" aria-label="Закрити меню" onClick={() => setOpen(false)} />
       ) : null}
       <aside className={cx('sidebar', open && 'open')}>
-        <div className="brand">
+        <NavLink to={{ pathname: '/', hash: '' }} className="brand" end>
           <span className="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32" width="22" height="22">
               <rect width="32" height="32" rx="6" fill="currentColor" />
@@ -65,10 +65,13 @@ export function Layout() {
             <span className="brand-name">DATABASE</span>
             <span className="brand-sub">Business & Intelligence</span>
           </span>
-        </div>
+        </NavLink>
         <nav className="nav-scroll" aria-label="Розділи">
           <p className="nav-label">Огляд</p>
-          <NavLink to="/" end className={({ isActive }) => cx('nav-link', isActive && 'active')}>
+          <NavLink to={{ pathname: '/', hash: '' }} end className={({ isActive }) => cx('nav-link', isActive && 'active')}>
+            Каталог
+          </NavLink>
+          <NavLink to="/dashboard" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
             Панель
           </NavLink>
           <p className="nav-label">Розділи</p>
@@ -111,8 +114,8 @@ export function Layout() {
           ) : null}
         </nav>
         <div className="side-foot">
-          <span className={`role-pill role-${auth.role}`}>{roleLabel(auth.role)}</span>
-          <span className="side-note">{auth.email ?? 'Без входу · публічна частина'}</span>
+          <span className={`role-pill role-${auth.role}`}>{auth.ready ? roleLabel(auth.role) : '…'}</span>
+          <span className="side-note">{auth.email ?? 'Без входу · каталог відкритий'}</span>
         </div>
       </aside>
       <div className="maincol">
@@ -164,7 +167,7 @@ export function Layout() {
               </svg>
             )}
           </button>
-          {auth.email ? (
+          {auth.ready && auth.email ? (
             <div className="account">
               <span className="account-email" title={auth.email}>
                 {auth.email}
@@ -173,11 +176,11 @@ export function Layout() {
                 Вийти
               </button>
             </div>
-          ) : (
-            <NavLink to="/login" className="btn btn-primary">
-              Увійти
+          ) : auth.ready ? (
+            <NavLink to="/login" className="text-login">
+              Вхід
             </NavLink>
-          )}
+          ) : null}
         </header>
         <main id="content" className="content">
           {auth.notice ? (
@@ -201,7 +204,7 @@ export function Layout() {
               </button>
             </div>
           ) : null}
-          {!auth.ready ? <p className="boot">Перевірка сесії…</p> : <Outlet />}
+          <Outlet />
         </main>
       </div>
     </div>

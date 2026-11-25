@@ -7,7 +7,7 @@ export function NotFoundPage() {
       <PageHeader title="Сторінку не знайдено" />
       <p className="empty">Такої адреси в порталі немає.</p>
       <Link to="/" className="text-link">
-        На панель
+        На каталог
       </Link>
     </>
   )

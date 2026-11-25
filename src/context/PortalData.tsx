@@ -16,19 +16,29 @@ type PortalValue = {
 
 const PortalContext = createContext<PortalValue | null>(null)
 
-async function loadPortal(): Promise<Omit<PortalValue, 'loading' | 'error' | 'reload'>> {
+const RECORD_SELECT =
+  'id,category,sheet_category,subcategory,name,short_description,details_link,organization,country,city_region,language_community,website,public_contact,source,source_url,published_date,date_added,last_updated,last_verified,status,priority,reliability,potential,partner_type,next_action,responsible_agent,access_level,pay_budget,requirements,hours_format,skill_fit,notes,duplicate_check,sheet_row,synced_at'
+
+const HISTORY_SELECT =
+  'id,changed_at,record_id,section,change_type,previous_value,new_value,source,agent,reason,sheet_row'
+
+async function loadPortal(signedIn: boolean): Promise<Omit<PortalValue, 'loading' | 'error' | 'reload'>> {
   const [sections, records, history, reports, syncResult] = await Promise.all([
     fetchAll<SectionRow>((from, to) =>
-      supabase.from('section_access').select('*').order('sort_order', { ascending: true }).range(from, to),
+      supabase.from('section_access').select('section,label,sort_order,visible_to,updated_at').order('sort_order', { ascending: true }).range(from, to),
     ),
-    fetchAll<RecordRow>((from, to) =>
-      supabase.from('records').select('*').order('id', { ascending: true }).range(from, to),
-    ),
-    fetchAll<HistoryRow>((from, to) =>
-      supabase.from('update_history').select('*').order('id', { ascending: false }).range(from, to),
-    ),
+    signedIn
+      ? fetchAll<RecordRow>((from, to) =>
+          supabase.from('records').select(RECORD_SELECT).order('id', { ascending: true }).range(from, to),
+        )
+      : Promise.resolve([]),
+    signedIn
+      ? fetchAll<HistoryRow>((from, to) =>
+          supabase.from('update_history').select(HISTORY_SELECT).order('id', { ascending: false }).range(from, to),
+        )
+      : Promise.resolve([]),
     fetchAll<ReportRow>((from, to) =>
-      supabase.from('daily_reports').select('*').order('report_date', { ascending: false }).range(from, to),
+      supabase.from('daily_reports').select('id,report_date,report_type,title,doc_url,summary,visible_to,created_at').order('report_date', { ascending: false }).range(from, to),
     ),
     supabase.rpc('last_sync'),
   ])
@@ -60,7 +70,7 @@ export function PortalDataProvider({ children }: { children: ReactNode }) {
     let cancel = false
     setLoading(true)
     setError(null)
-    loadPortal()
+    loadPortal(Boolean(auth.session))
       .then((data) => {
         if (cancel) return
         setSections(data.sections)

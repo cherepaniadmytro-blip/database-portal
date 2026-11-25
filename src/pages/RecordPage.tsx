@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
+import { OwnerNotes } from '../components/OwnerNotes.tsx'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { StatusBadge } from '../components/StatusBadge.tsx'
 import { usePortal } from '../context/PortalData.tsx'
@@ -30,7 +31,7 @@ export function RecordPage() {
       <>
         <PageHeader title="Запис недоступний" meta={id} />
         <p className="empty">Запису немає серед видимих вам рядків.</p>
-        <Link to="/" className="text-link">
+        <Link to="/dashboard" className="text-link">
           На панель
         </Link>
       </>
@@ -73,6 +74,7 @@ export function RecordPage() {
           </dl>
         </section>
         <aside className="rail">
+          <OwnerNotes id={row.id} />
           <section className="panel">
             <h2>Стан</h2>
             <StatusBadge status={row.status} />

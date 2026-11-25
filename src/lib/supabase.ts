@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { appRedirectUrl } from './redirect.ts'
 
 const url = import.meta.env.VITE_SUPABASE_URL
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -30,10 +31,9 @@ export const supabase = createClient(url, key, {
   global: { fetch: fetchAuth },
 })
 
+/** Magic-link return URL: this deployment's origin plus the app base path. */
 export function authRedirectTo(): string {
-  const base = import.meta.env.BASE_URL || '/'
-  const normalized = base.endsWith('/') ? base : `${base}/`
-  return `${window.location.origin}${normalized}`
+  return appRedirectUrl(window.location.origin, import.meta.env.BASE_URL || '/')
 }
 
 export function isInviteOnlyError(error: { message?: string; code?: string } | null | undefined): boolean {

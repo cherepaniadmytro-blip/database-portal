@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
-    "test": "node --experimental-strip-types --test src/lib/metrics.test.ts"
+    "test": "node --experimental-strip-types --test src/lib/metrics.test.ts src/lib/catalog.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
