@@ -14,6 +14,10 @@ import {
   uniqueValues,
 } from '../lib/records.ts'
 import type { FilterState, RecordRow, SortDir, SortKey } from '../lib/types.ts'
+import { useCrm } from '../context/CrmData.tsx'
+import { effectiveRelation, isRelation } from '../lib/crm.ts'
+import { recordStatusLabel, sectionLabel } from '../lib/labels.ts'
+import { AssigneeBadge, OutreachBadge, RelationBadge } from './CrmBadges.tsx'
 import { StatusBadge } from './StatusBadge.tsx'
 
 const PAGE_SIZE = 50
@@ -49,7 +53,8 @@ export function RecordBrowser({
   onQueryChange?: (query: string) => void
 }) {
   const navigate = useNavigate()
-  const { t } = useLocale()
+  const { locale, t } = useLocale()
+  const crm = useCrm()
   const [filters, setFilters] = useState<FilterState>({ ...EMPTY_FILTERS, q: query ?? '' })
   const [sortKey, setSortKey] = useState<SortKey>('potential')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -107,6 +112,21 @@ export function RecordBrowser({
               <span>{row.name}</span>
               {fresh === 'new' ? <span className="mark mark-new">{t.browser.markNew}</span> : null}
               {fresh === 'updated' ? <span className="mark mark-updated">{t.browser.markUpdated}</span> : null}
+              {crm.canEdit ? (
+                <span className="catalog-badges">
+                  <RelationBadge relation={effectiveRelation(isRelation(row.relation_type) ? row.relation_type : null, crm.workflows.get(row.id))} />
+                  {crm.workflows.get(row.id) ? (
+                    <>
+                      <OutreachBadge status={crm.workflows.get(row.id)?.status} />
+                      <AssigneeBadge
+                        assignedTo={crm.workflows.get(row.id)?.assignedTo}
+                        team={crm.team}
+                        currentUserId={crm.userId}
+                      />
+                    </>
+                  ) : null}
+                </span>
+              ) : null}
             </span>
             {row.short_description ? <span className="desc">{row.short_description}</span> : null}
           </div>
@@ -118,7 +138,7 @@ export function RecordBrowser({
           {
             key: 'category' as const,
             label: t.browser.section,
-            render: (row: RecordRow) => row.category,
+            render: (row: RecordRow) => sectionLabel(row.category, row.category, locale),
           },
         ]
       : []),
@@ -188,7 +208,7 @@ export function RecordBrowser({
               <option value="">{t.browser.all}</option>
               {categories.map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {sectionLabel(value, value, locale)}
                 </option>
               ))}
             </select>
@@ -200,7 +220,7 @@ export function RecordBrowser({
             <option value="">{t.browser.all}</option>
             {statuses.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {recordStatusLabel(value, locale)}
               </option>
             ))}
           </select>

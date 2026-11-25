@@ -25,11 +25,12 @@ import {
 } from '../lib/catalogRoute.ts'
 import { formatDateTime, formatDay, formatMaybeNumber, formatNumber, safeUrl } from '../lib/records.ts'
 import { OwnerNotes } from '../components/OwnerNotes.tsx'
-import { OutreachBadge, RelationBadge } from '../components/CrmBadges.tsx'
+import { AssigneeBadge, MarksBadges, OutreachBadge, RelationBadge } from '../components/CrmBadges.tsx'
+import { recordStatusLabel, sectionLabel } from '../lib/labels.ts'
 import { WorkflowPanel } from '../components/WorkflowPanel.tsx'
 import { useCrm } from '../context/CrmData.tsx'
 import { crmMessages, geoLabel } from '../i18n/crm.ts'
-import { PIPELINE_RELATIONS, RELATIONS } from '../lib/crm.ts'
+import { RELATIONS } from '../lib/crm.ts'
 
 function useCatalogStep(): CatalogStep {
   const [hash, setHash] = useState(() => window.location.hash)
@@ -274,7 +275,7 @@ function ListStep({
             <option value="">{t.all}</option>
             {statuses.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {recordStatusLabel(status, locale)}
               </option>
             ))}
           </select>
@@ -285,7 +286,7 @@ function ListStep({
             <option value="">{t.all}</option>
             {categories.map((category) => (
               <option key={category.value} value={category.value}>
-                {category.label}
+                {sectionLabel(category.value, category.label, locale)}
               </option>
             ))}
           </select>
@@ -331,8 +332,16 @@ function ListStep({
                     {row.name}
                     <span className="catalog-badges">
                       <RelationBadge relation={row.relationType} />
-                      {crm.canEdit && crm.workflows.get(row.id) && row.relationType && PIPELINE_RELATIONS.includes(row.relationType) ? (
-                        <OutreachBadge status={crm.workflows.get(row.id)?.status} />
+                      {crm.canEdit && crm.workflows.get(row.id) ? (
+                        <>
+                          <OutreachBadge status={crm.workflows.get(row.id)?.status} />
+                          <AssigneeBadge
+                            assignedTo={crm.workflows.get(row.id)?.assignedTo}
+                            team={crm.team}
+                            currentUserId={crm.userId}
+                          />
+                          <MarksBadges marks={crm.workflows.get(row.id)?.marks} />
+                        </>
                       ) : null}
                     </span>
                   </span>
@@ -424,7 +433,7 @@ function DetailStep({
         title={row.name}
         meta={
           <>
-            {t.catalog.step4(row.categoryLabel || row.category || t.catalog.noSection)} · <span className="mono">{row.id}</span>
+            {t.catalog.step4(row.category ? sectionLabel(row.category, row.categoryLabel, locale) : t.catalog.noSection)} · <span className="mono">{row.id}</span>
           </>
         }
         actions={<a className="btn btn-ghost" href={listHref}>{t.back}</a>}
@@ -433,7 +442,7 @@ function DetailStep({
         <section className="panel">
           {row.description ? <p className="lead">{row.description}</p> : null}
           <dl className="facts">
-            <Fact label={t.catalog.section} value={row.categoryLabel || row.category} />
+            <Fact label={t.catalog.section} value={row.category ? sectionLabel(row.category, row.categoryLabel, locale) : null} />
             <Fact label={t.catalog.subcategory} value={row.subcategory} />
             <Fact label={t.catalog.organization} value={row.organization} />
             <Fact label={crmMessages(locale).f.geo} value={geoLabel(locale, row.geoScope)} />

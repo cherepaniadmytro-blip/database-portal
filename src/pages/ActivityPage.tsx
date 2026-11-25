@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
@@ -7,7 +7,7 @@ import { useCrm } from '../context/CrmData.tsx'
 import { useLocale } from '../context/LocaleContext.tsx'
 import { channelLabel, crmMessages } from '../i18n/crm.ts'
 import { detailHash } from '../lib/catalogRoute.ts'
-import { isChannel, isRelation, isStatus, type WorkflowEvent } from '../lib/crm.ts'
+import { displayMemberName, isChannel, isMark, isRelation, isStatus, memberDisplayName, normalizeWorkflowStatus, type WorkflowEvent } from '../lib/crm.ts'
 import { formatDateTime } from '../lib/records.ts'
 
 export function ActivityPage() {
@@ -18,16 +18,22 @@ export function ActivityPage() {
   const m = crmMessages(locale)
   const [events, setEvents] = useState<WorkflowEvent[]>([])
   const [person, setPerson] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const refresh = useCallback(async () => {
+    if (!crm.canEdit) {
+      setEvents([])
+      return
+    }
+    setLoading(true)
+    const rows = await crm.loadEvents(300)
+    setEvents(rows)
+    setLoading(false)
+  }, [crm])
 
   useEffect(() => {
-    let cancel = false
-    void crm.loadEvents(300).then((rows) => {
-      if (!cancel) setEvents(rows)
-    })
-    return () => {
-      cancel = true
-    }
-  }, [crm])
+    void refresh()
+  }, [refresh])
 
   if (!auth.session || !crm.canEdit) {
     return (
@@ -47,8 +53,18 @@ export function ActivityPage() {
   const label = (value: string | null): string | null => {
     if (!value) return value
     if (isStatus(value)) return m.status[value]
+    if (['selected', 'draft_ready', 'agreed'].includes(value)) return m.status[normalizeWorkflowStatus(value)]
     if (isRelation(value)) return m.relation[value]
     if (isChannel(value)) return channelLabel(locale, value)
+    if (value.includes("@")) return memberDisplayName(crm.team, null, value)
+    if (value.includes(',') || isMark(value)) {
+      return value
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => (isMark(part) ? m.marks[part] : part))
+        .join(', ')
+    }
     return value
   }
   const translate = (event: WorkflowEvent) => {
@@ -62,7 +78,15 @@ export function ActivityPage() {
 
   return (
     <>
-      <PageHeader title={m.activity.title} meta={m.activity.meta} />
+      <PageHeader
+        title={m.activity.title}
+        meta={m.activity.meta}
+        actions={
+          <button type="button" className="btn btn-ghost" disabled={loading} onClick={() => void refresh()}>
+            {m.activity.refresh}
+          </button>
+        }
+      />
       <div className="filters">
         <label className="field">
           <span>{m.f.person}</span>
@@ -70,7 +94,7 @@ export function ActivityPage() {
             <option value="">{m.f.everyone}</option>
             {crm.team.map((member) => (
               <option key={member.id} value={member.email}>
-                {member.email}
+                {displayMemberName(member.email, member.display_name)}
               </option>
             ))}
           </select>
@@ -86,10 +110,15 @@ export function ActivityPage() {
             return (
               <li key={event.id} className="timeline-item">
                 <div className="timeline-meta">
-                  {formatDateTime(event.createdAt)} · <strong>{event.actorEmail ?? '—'}</strong>
+                  {formatDateTime(event.createdAt)} · <strong>{memberDisplayName(crm.team, null, event.actorEmail)}</strong>
                 </div>
                 <p className="timeline-text">
-                  {href ? <Link to={{ pathname: '/', hash: href }}>{row?.name ?? event.recordId}</Link> : event.recordId}: {translate(event)}
+                  {href ? (
+                    <Link to={{ pathname: '/', hash: href }}>{row?.name ?? event.recordId}</Link>
+                  ) : (
+                    <Link to={`/record/${encodeURIComponent(event.recordId)}`}>{event.recordId}</Link>
+                  )}
+                  : {translate(event)}
                 </p>
               </li>
             )

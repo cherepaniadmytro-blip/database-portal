@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { OutreachBadge } from '../components/CrmBadges.tsx'
+import { AssigneeBadge, MarksBadges, OutreachBadge } from '../components/CrmBadges.tsx'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 import { useCatalog } from '../context/CatalogData.tsx'
@@ -9,7 +9,7 @@ import { useLocale } from '../context/LocaleContext.tsx'
 import { channelLabel, crmMessages, geoLabel } from '../i18n/crm.ts'
 import { detailHash } from '../lib/catalogRoute.ts'
 import { displayLabel, sortCatalog } from '../lib/catalog.ts'
-import { PIPELINE_RELATIONS, STATUSES, groupByStatus, isRelation, statusTone, type Relation } from '../lib/crm.ts'
+import { PIPELINE_RELATIONS, STATUSES, displayMemberName, groupByStatus, isRelation, memberDisplayName, statusTone, type Relation } from '../lib/crm.ts'
 import { formatDateTime, formatMaybeNumber } from '../lib/records.ts'
 
 export function PipelinePage() {
@@ -19,9 +19,10 @@ export function PipelinePage() {
   const { locale } = useLocale()
   const m = crmMessages(locale)
   const [params, setParams] = useSearchParams()
+  const [takingId, setTakingId] = useState<string | null>(null)
   const relation: Relation = isRelation(params.get('type')) ? (params.get('type') as Relation) : 'client'
   const person = params.get('who') ?? ''
-  const showNew = params.get('new') === '1'
+  const showNew = params.get('new') !== '0'
 
   const columns = useMemo(
     () =>
@@ -32,6 +33,7 @@ export function PipelinePage() {
         (row) => row.relationType,
         (item) => {
           if (person === 'me') return item.workflow?.assignedTo === crm.userId
+          if (person === 'none') return !item.workflow?.assignedTo
           if (person) return item.workflow?.assignedTo === person
           return true
         },
@@ -64,14 +66,26 @@ export function PipelinePage() {
 
   return (
     <>
-      <PageHeader title={m.pipeline.title} meta={m.pipeline.meta} />
+      <PageHeader
+        title={m.pipeline.title}
+        meta={m.pipeline.meta}
+        actions={
+          <Link className="btn btn-ghost" to="/stats">
+            {m.nav.stats}
+          </Link>
+        }
+      />
       <nav className="tabs" aria-label={m.f.relation}>
         {PIPELINE_RELATIONS.map((value) => {
           const counts = groupByStatus(catalog.rows, crm.workflows, value, (row) => row.relationType)
+          const total = STATUSES.reduce((sum, s) => sum + counts[s].length, 0)
           const active = STATUSES.filter((s) => s !== 'new').reduce((sum, s) => sum + counts[s].length, 0)
           return (
             <button key={value} type="button" className={`tab ${value === relation ? 'active' : ''}`} onClick={() => set('type', value)}>
-              {m.relationPlural[value]} <span className="tab-count">{active}</span>
+              {m.relationPlural[value]}{' '}
+              <span className="tab-count">
+                {active > 0 ? `${active}/${total}` : total}
+              </span>
             </button>
           )
         })}
@@ -82,18 +96,17 @@ export function PipelinePage() {
           <select value={person} onChange={(event) => set('who', event.target.value)}>
             <option value="">{m.f.everyone}</option>
             <option value="me">{m.f.mine}</option>
+            <option value="none">{m.f.unassigned}</option>
             {crm.team.map((member) => (
               <option key={member.id} value={member.id}>
-                {member.email}
+                {displayMemberName(member.email, member.display_name)}
               </option>
             ))}
           </select>
         </label>
         <label className="field checkbox-field">
-          <input type="checkbox" checked={showNew} onChange={(event) => set('new', event.target.checked ? '1' : '')} />
-          <span>
-            {m.status.new} ({columns.new.length})
-          </span>
+          <input type="checkbox" checked={showNew} onChange={(event) => set('new', event.target.checked ? '' : '0')} />
+          <span>{m.pipeline.showNew(columns.new.length)}</span>
         </label>
       </div>
       {crm.error ? <p className="notice notice-error">{crm.error}</p> : null}
@@ -112,14 +125,30 @@ export function PipelinePage() {
                     <strong>{row.name}</strong>
                   </Link>
                   <span className="desc">
-                    {displayLabel(row.languageGroup, locale)} · {displayLabel(row.platform, locale)} · {geoLabel(locale, row.geoScope)} · ★ {formatMaybeNumber(row.ratingScore)}
+                    {displayLabel(row.languageGroup, locale)} · {displayLabel(row.platform, locale)} · {geoLabel(locale, row.geoScope)} · ★{' '}
+                    {formatMaybeNumber(row.ratingScore)}
                   </span>
-                  <span className="desc">
-                    {channelLabel(locale, row.bestChannel)}
-                    {workflow?.assignedTo ? ` · ${crm.team.find((t) => t.id === workflow.assignedTo)?.email ?? ''}` : ''}
-                  </span>
+                  <div className="pipeline-badges">
+                    <AssigneeBadge assignedTo={workflow?.assignedTo} team={crm.team} currentUserId={crm.userId} />
+                    <MarksBadges marks={workflow?.marks} />
+                    {!workflow?.assignedTo ? (
+                      <button
+                        type="button"
+                        className="btn-inline"
+                        disabled={takingId === row.id}
+                        onClick={async () => {
+                          setTakingId(row.id)
+                          await crm.takeOwnership(row.id, row.relationType)
+                          setTakingId(null)
+                        }}
+                      >
+                        {m.work.takeWork}
+                      </button>
+                    ) : null}
+                  </div>
+                  <span className="desc">{channelLabel(locale, row.bestChannel)}</span>
                   {workflow?.nextStep ? <span className="desc">→ {workflow.nextStep}</span> : null}
-                  {workflow?.updatedAt ? <span className="desc">{m.f.updatedBy(workflow.updatedByEmail ?? '—', formatDateTime(workflow.updatedAt))}</span> : null}
+                  {workflow?.updatedAt ? <span className="desc">{m.f.updatedBy(memberDisplayName(crm.team, workflow.updatedBy, workflow.updatedByEmail), formatDateTime(workflow.updatedAt))}</span> : null}
                 </li>
               ))}
             </ul>

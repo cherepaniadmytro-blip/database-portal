@@ -17,7 +17,7 @@ type PortalValue = {
 const PortalContext = createContext<PortalValue | null>(null)
 
 const RECORD_SELECT =
-  'id,category,sheet_category,subcategory,name,short_description,details_link,organization,country,city_region,language_community,website,public_contact,source,source_url,published_date,date_added,last_updated,last_verified,status,priority,reliability,potential,partner_type,next_action,responsible_agent,access_level,pay_budget,requirements,hours_format,skill_fit,notes,duplicate_check,sheet_row,synced_at'
+  'id,category,sheet_category,subcategory,name,short_description,details_link,organization,country,city_region,language_community,website,public_contact,source,source_url,published_date,date_added,last_updated,last_verified,status,priority,reliability,potential,partner_type,next_action,responsible_agent,access_level,pay_budget,requirements,hours_format,skill_fit,notes,duplicate_check,sheet_row,synced_at,city,language_group,platform,entity_type,relation_type,relation_reason,best_channel,channel_reason,geo_scope'
 
 const HISTORY_SELECT =
   'id,changed_at,record_id,section,change_type,previous_value,new_value,source,agent,reason,sheet_row'
@@ -82,7 +82,7 @@ export function PortalDataProvider({ children }: { children: ReactNode }) {
       })
       .catch((err: unknown) => {
         if (cancel) return
-        setError(err instanceof Error ? err.message : 'Не вдалося завантажити дані')
+        setError(err instanceof Error ? err.message : 'Load failed')
         setLoading(false)
       })
     return () => {

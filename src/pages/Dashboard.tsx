@@ -4,7 +4,9 @@ import { StatusBadge } from '../components/StatusBadge.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 import { useLocale } from '../context/LocaleContext.tsx'
 import { usePortal } from '../context/PortalData.tsx'
-import { changeTypeLabel, roleLabel, syncStatusLabel } from '../lib/labels.ts'
+import { AssigneeBadge, OutreachBadge } from '../components/CrmBadges.tsx'
+import { useCrm } from '../context/CrmData.tsx'
+import { changeTypeLabel, roleLabel, sectionLabel, syncStatusLabel } from '../lib/labels.ts'
 import {
   compareHistory,
   dashboardCounts,
@@ -19,6 +21,7 @@ import {
 export function DashboardPage() {
   const portal = usePortal()
   const auth = useAuth()
+  const crm = useCrm()
   const { locale, t } = useLocale()
   const today = todayISO()
   const counts = dashboardCounts(portal.records, today)
@@ -92,8 +95,14 @@ export function DashboardPage() {
                       <span className="rank-n">{index + 1}</span>
                       <div className="rank-body">
                         <Link to={`/record/${encodeURIComponent(row.id)}`}>{row.name}</Link>
-                        <span className="desc">{row.category}</span>
+                        <span className="desc">{sectionLabel(row.category, row.category, locale)}</span>
                       </div>
+                      {crm.canEdit && crm.workflows.get(row.id) ? (
+                        <span className="catalog-badges">
+                          <OutreachBadge status={crm.workflows.get(row.id)?.status} />
+                          <AssigneeBadge assignedTo={crm.workflows.get(row.id)?.assignedTo} team={crm.team} currentUserId={crm.userId} />
+                        </span>
+                      ) : null}
                       <StatusBadge status={row.status} />
                       <span className="rank-score" title={t.dashboard.scoreTitle(row.priority ?? t.dash, String(row.potential ?? t.dash))}>
                         {formatScore(rankScore(row))}
@@ -128,7 +137,7 @@ export function DashboardPage() {
                         )}
                       </div>
                       <p className="desc">
-                        {item.section || '—'}
+                        {item.section ? sectionLabel(item.section, item.section, locale) : '—'}
                         {item.agent ? ` · ${item.agent}` : ''}
                       </p>
                     </li>

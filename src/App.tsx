@@ -5,6 +5,7 @@ import { ActivityPage } from './pages/ActivityPage.tsx'
 import { AdminPage } from './pages/AdminPage.tsx'
 import { HelpPage } from './pages/HelpPage.tsx'
 import { PipelinePage } from './pages/PipelinePage.tsx'
+import { StatsPage } from './pages/StatsPage.tsx'
 import { ArchivePage } from './pages/ArchivePage.tsx'
 import { CatalogPage } from './pages/CatalogPage.tsx'
 import { DashboardPage } from './pages/Dashboard.tsx'
@@ -35,6 +36,7 @@ const router = createBrowserRouter(
         { path: 'admin', element: <AdminPage /> },
         { path: 'login', element: <LoginPage /> },
         { path: 'pipeline', element: <PipelinePage /> },
+        { path: 'stats', element: <StatsPage /> },
         { path: 'activity', element: <ActivityPage /> },
         { path: 'help', element: <HelpPage /> },
         { path: 'account', element: <AccountPage /> },

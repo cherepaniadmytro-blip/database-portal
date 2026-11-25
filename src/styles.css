@@ -953,3 +953,132 @@ html[data-theme='dark'] .rel-job { color: #b9c9f2; background: #1b2540; }
 .letter-head h2 { font-size: 16px; margin: 0; }
 .letter-text { width: 100%; font: inherit; line-height: 1.5; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg, var(--surface)); color: var(--ink); }
 .login-or { text-align: center; color: var(--muted); margin: 12px 0; }
+
+/* ---------- CRM workflow ticks, stage pills, ownership, marks, stats ---------- */
+.pipeline-col.tone-orange { border-top-color: #e86b1a; }
+.assignee-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: #164e63;
+  background: #e0f2fe;
+  white-space: nowrap;
+}
+.assignee-badge.assignee-me {
+  color: #14532d;
+  background: #dcfce7;
+}
+html[data-theme='dark'] .assignee-badge { color: #bae6fd; background: #142c3d; }
+html[data-theme='dark'] .assignee-badge.assignee-me { color: #bbf7d0; background: #143322; }
+.mark-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.btn-sm { padding: 4px 10px; font-size: 12.5px; }
+.btn-inline {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-inline:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.ok-text { color: var(--ok); font-weight: 600; }
+.workflow-block {
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-elev);
+  display: grid;
+  gap: 8px;
+}
+.workflow-block-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.tick-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+}
+.tick-pill.checked {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  font-weight: 600;
+}
+.tick-pill input { margin: 0; accent-color: var(--accent); }
+.tick-suggested { font-style: normal; font-size: 11.5px; color: var(--muted); }
+.stage-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.stage-btn {
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 13px;
+}
+.stage-btn.tone-red { border-left-color: #d9480f; }
+.stage-btn.tone-orange { border-left-color: #e86b1a; }
+.stage-btn.tone-yellow { border-left-color: #e0a800; }
+.stage-btn.tone-blue { border-left-color: #2f6fca; }
+.stage-btn.tone-green { border-left-color: #1f8a52; }
+.stage-btn.tone-grey { border-left-color: #9a948a; }
+.stage-btn.tone-neutral { border-left-color: var(--line-strong); }
+.stage-btn.active {
+  font-weight: 600;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink) inset;
+}
+.pipeline-badges { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0; align-items: center; }
+.stats-block { margin-top: 12px; display: grid; gap: 10px; }
+.record-comm-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--bg-elev);
+  display: grid;
+  gap: 8px;
+}
+.record-comm-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}

@@ -2,7 +2,7 @@ import { PageHeader } from '../components/PageHeader.tsx'
 import { OutreachBadge, RelationBadge } from '../components/CrmBadges.tsx'
 import { useLocale } from '../context/LocaleContext.tsx'
 import { channelLabel, crmMessages, geoLabel } from '../i18n/crm.ts'
-import { CHANNELS, GEO_SCOPES, RELATIONS, STATUSES } from '../lib/crm.ts'
+import { CHANNELS, GEO_SCOPES, MARKS, RELATIONS, STATUSES } from '../lib/crm.ts'
 
 const CHANNEL_HELP: Record<string, { uk: string; sk: string }> = {
   email: { uk: 'Лише робочі адреси організацій (info@, kontakt@). Один персональний лист.', sk: 'Iba pracovné adresy organizácií (info@, kontakt@). Jedna osobná správa.' },
@@ -42,6 +42,19 @@ export function HelpPage() {
                 <OutreachBadge status={value} />
               </dt>
               <dd>{m.statusHelp[value]}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <section className="panel">
+        <h2>{m.help.marks}</h2>
+        <dl className="legend">
+          {MARKS.map((mark) => (
+            <div key={mark}>
+              <dt>
+                <span className="mark-chip">✓ {m.marks[mark]}</span>
+              </dt>
+              <dd>{m.marksHelp[mark]}</dd>
             </div>
           ))}
         </dl>

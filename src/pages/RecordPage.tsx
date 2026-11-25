@@ -4,7 +4,9 @@ import { PageHeader } from '../components/PageHeader.tsx'
 import { StatusBadge } from '../components/StatusBadge.tsx'
 import { usePortal } from '../context/PortalData.tsx'
 import { useLocale } from '../context/LocaleContext.tsx'
-import { accessLabel, changeTypeLabel } from '../lib/labels.ts'
+import { WorkflowPanel } from '../components/WorkflowPanel.tsx'
+import { isChannel, isRelation } from '../lib/crm.ts'
+import { accessLabel, changeTypeLabel, sectionLabel } from '../lib/labels.ts'
 import {
   FIELDS,
   compareHistory,
@@ -52,7 +54,7 @@ export function RecordPage() {
         title={row.name}
         meta={
           <>
-            <Link to={`/section/${encodeURIComponent(row.category)}`}>{row.category}</Link>
+            <Link to={`/section/${encodeURIComponent(row.category)}`}>{sectionLabel(row.category, row.category, locale)}</Link>
             {' · '}
             <span className="mono">{row.id}</span>
           </>
@@ -70,11 +72,26 @@ export function RecordPage() {
             {FIELDS.map((field) => (
               <div key={field.key}>
                 <dt>{t.fields[field.key as keyof typeof t.fields] ?? field.label}</dt>
-                <dd>{renderField(field, row)}</dd>
+                <dd>{renderField(field, row, locale)}</dd>
               </div>
             ))}
           </dl>
         </section>
+        <WorkflowPanel
+          row={{
+            id: row.id,
+            name: row.name,
+            city: row.city ?? null,
+            place: row.city ?? row.city_region ?? row.country ?? '',
+            languageGroup: row.language_group ?? row.language_community ?? null,
+            entityType: row.entity_type ?? null,
+            relationType: isRelation(row.relation_type) ? row.relation_type : null,
+            suggestedRelationType: isRelation(row.relation_type) ? row.relation_type : null,
+            relationReason: row.relation_reason ?? null,
+            bestChannel: isChannel(row.best_channel) ? row.best_channel : null,
+            channelReason: row.channel_reason ?? null,
+          }}
+        />
         <aside className="rail">
           <OwnerNotes id={row.id} />
           <section className="panel">
@@ -153,7 +170,7 @@ export function RecordPage() {
   )
 }
 
-function renderField(field: FieldDef, row: RecordRow) {
+function renderField(field: FieldDef, row: RecordRow, locale: 'uk' | 'sk') {
   const value = row[field.key]
   if (value == null || value === '') return '—'
   if (field.kind === 'link') {
@@ -169,7 +186,8 @@ function renderField(field: FieldDef, row: RecordRow) {
   if (field.kind === 'date') return formatDay(String(value))
   if (field.kind === 'datetime') return formatDateTime(String(value))
   if (field.kind === 'number') return formatMaybeNumber(typeof value === 'number' ? value : Number(value))
-  if (field.key === 'access_level') return accessLabel(String(value))
+  if (field.key === 'access_level') return accessLabel(String(value), locale)
+  if (field.key === 'category') return sectionLabel(String(value), String(value), locale)
   if (field.key === 'status') return <StatusBadge status={String(value)} />
   return String(value)
 }
