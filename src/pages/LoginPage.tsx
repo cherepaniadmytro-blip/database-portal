@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
+import { authRedirectTo } from '../lib/supabase.ts'
 
 export function LoginPage() {
   const auth = useAuth()
@@ -13,8 +14,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [inviteOnly, setInviteOnly] = useState(false)
 
-  async function sendLink(event: FormEvent) {
-    event.preventDefault()
+  async function sendLink() {
     setPending('link')
     setError(null)
     setInfo(null)
@@ -30,7 +30,7 @@ export function LoginPage() {
       setError(result.error)
       return
     }
-    setInfo('Лист надіслано. Відкрийте посилання або введіть код нижче, якщо він є в листі.')
+    setInfo('Лист надіслано. Введіть 6 цифр із листа. Посилання в листі теж відкриє сесію.')
   }
 
   async function verify(event: FormEvent) {
@@ -52,6 +52,8 @@ export function LoginPage() {
     navigate('/')
   }
 
+  const redirectTo = authRedirectTo()
+
   if (auth.email) {
     return (
       <>
@@ -61,7 +63,10 @@ export function LoginPage() {
             Ви увійшли як <strong>{auth.email}</strong>.
           </p>
           <div className="page-actions">
-            <Link className="btn btn-primary" to="/">
+            <Link className="btn btn-primary" to={{ pathname: '/', hash: '' }}>
+              До каталогу
+            </Link>
+            <Link className="btn btn-ghost" to="/dashboard">
               На панель
             </Link>
             <button type="button" className="btn btn-ghost" onClick={() => void auth.signOut()}>
@@ -75,9 +80,15 @@ export function LoginPage() {
 
   return (
     <>
-      <PageHeader title="Вхід" meta="Лист із посиланням або одноразовим кодом. Без входу відкрита публічна частина." />
+      <PageHeader
+        title="Вхід"
+        meta="Необов'язково. Каталог відкритий без входу. Для власника — 6-значний код з листа."
+      />
       <section className="login-card panel">
-        <form onSubmit={(event) => void sendLink(event)} className="stack">
+        <form
+          onSubmit={(event) => void verify(event)}
+          className="stack"
+        >
           <label className="field">
             <span>Ел. пошта</span>
             <input
@@ -89,9 +100,26 @@ export function LoginPage() {
               placeholder="name@example.com"
             />
           </label>
-          <button className="btn btn-primary" type="submit" disabled={pending !== null}>
-            {pending === 'link' ? 'Надсилання…' : 'Надіслати посилання'}
-          </button>
+          <label className="field">
+            <span>Код із 6 цифр</span>
+            <input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+            />
+          </label>
+          <div className="page-actions">
+            <button className="btn btn-primary" type="submit" disabled={pending !== null || code.trim().length < 6 || !email.trim()}>
+              {pending === 'code' ? 'Перевірка…' : 'Увійти кодом'}
+            </button>
+            <button className="btn btn-ghost" type="button" disabled={pending !== null || !email.trim()} onClick={() => void sendLink()}>
+              {pending === 'link' ? 'Надсилання…' : 'Надіслати код'}
+            </button>
+          </div>
         </form>
         {inviteOnly ? (
           <div className="invite-only" role="alert">
@@ -105,23 +133,10 @@ export function LoginPage() {
           </p>
         ) : null}
         {info ? <p className="notice notice-ok">{info}</p> : null}
-        <form onSubmit={(event) => void verify(event)} className="stack code-form">
-          <label className="field">
-            <span>Код із листа</span>
-            <input
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]{6,}"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              placeholder="6 цифр"
-            />
-          </label>
-          <button className="btn btn-ghost" type="submit" disabled={pending !== null || code.trim().length < 6 || !email.trim()}>
-            {pending === 'code' ? 'Перевірка…' : 'Увійти кодом'}
-          </button>
-        </form>
-        <p className="desc">Посилання веде на цей портал і відкриває сесію. Код потрібен, якщо шаблон листа містить одноразовий пароль.</p>
+        <p className="desc">
+          Введіть 6 цифр із листа. Посилання в тому ж листі відкриває{' '}
+          <span className="mono">{redirectTo}</span>.
+        </p>
       </section>
     </>
   )

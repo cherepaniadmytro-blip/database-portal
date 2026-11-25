@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { Layout } from './components/Layout.tsx'
 import { AdminPage } from './pages/AdminPage.tsx'
 import { ArchivePage } from './pages/ArchivePage.tsx'
+import { CatalogPage } from './pages/CatalogPage.tsx'
 import { DashboardPage } from './pages/Dashboard.tsx'
 import { HistoryPage } from './pages/HistoryPage.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
@@ -19,7 +20,8 @@ const router = createBrowserRouter(
       path: '/',
       element: <Layout />,
       children: [
-        { index: true, element: <DashboardPage /> },
+        { index: true, element: <CatalogPage /> },
+        { path: 'dashboard', element: <DashboardPage /> },
         { path: 'section/:section', element: <SectionPage /> },
         { path: 'record/:id', element: <RecordPage /> },
         { path: 'search', element: <SearchPage /> },

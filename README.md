@@ -15,16 +15,18 @@ Google Drive: DATABASE — Master Database (Google Sheets)  ← single source of
 Supabase project `database-portal` (Postgres + Auth + RLS, free tier, eu-central-1)
         │  supabase-js with the publishable key (public by design)
         ▼
-Static frontend on GitHub Pages  — noindex, magic-link login
+Static frontend on GitHub Pages  — noindex, public catalog, optional login
 https://cherepaniadmytro-blip.github.io/database-portal/
 ```
+
+Anyone with the link browses the public catalog without signing in. Login is an optional **Вхід** for the owner (and invited partners). The catalog reads `public_records` and, when those rows are already classified, the `catalog_facets` view (`language_group`, `platform`, `n`). The dashboard, sections, reports, history and admin stay as they were and still follow Row Level Security on `records`.
 
 ## Access levels
 
 | Role | How you get it | Sees |
 |---|---|---|
-| Public / Guest | no login | records with Access Level `PUBLIC` in sections marked `public` |
-| Partner | invited by owner, magic link login | `PUBLIC` + `PARTNER` records in sections marked `public` or `partner` |
+| Public / Guest | no login | the catalog (`public_records`); dashboard sections still follow RLS on `records` |
+| Partner | invited by owner, email code or magic link | `PUBLIC` + `PARTNER` records in sections marked `public` or `partner` |
 | Owner | Dmytro | everything; edits section visibility and invitations |
 
 Section visibility is controlled by the owner in table `section_access` (`public` / `partner` / `owner`).
@@ -32,6 +34,17 @@ Sign-up is invite-only: a database trigger rejects any auth user whose email is 
 The owner invites a partner by inserting their email into `invited_emails`; the partner then signs in with an email magic link / OTP.
 
 The sidebar is built from `section_access`, so a newly inserted section shows up without rebuilding the app. Guests only see sections with `visible_to = public`; partners also see `partner`; the owner sees every section.
+
+## Catalog
+
+The home screen is a four-step catalog. Each step is a hash URL, so it can be shared and the browser Back button returns to the previous step. GitHub Pages does not need a rewrite for these hashes.
+
+1. `#/` — language / nationality group, with counts
+2. `#/g/<group>` — platform or type (Facebook, YouTube, Telegram, Instagram, TikTok, сайт/медіа, блогер, агенція, організація, консультант, …)
+3. `#/g/<group>/p/<platform>?q=&city=&country=&status=&category=` — list sorted by `rating_score` (highest first). Rows without a score follow priority, then potential.
+4. `#/g/<group>/p/<platform>/r/<id>` — public fields, source links, and added / updated / checked dates
+
+`catalog_facets` is a view of `(language_group, platform, n)`. A null `language_group` is stored there as `Not applicable` and the catalog shows that set apart from the language groups, under **Інше / не спільноти**. Group cards use `language_group_label`. Anonymous visitors never query `records` or `update_history` (those return no rows); the catalog reads `public_records` with an explicit column list. A signed-in owner still loads `records` by explicit columns. Private notes come from `owner_notes(p_ids)` and appear on the detail card only while a session is open.
 
 ## Database (see `supabase/migrations`)
 
@@ -79,7 +92,7 @@ The owner must set both of these in the Supabase dashboard, or magic links will 
 
 For local sign-in, also add `http://localhost:5173/database-portal/` to Redirect URLs.
 
-The app uses the implicit magic-link flow, which works with the default Supabase email template (`{{ .ConfirmationURL }}`). The login form also accepts a 6-digit code. That code is delivered only if the Magic Link email template includes `{{ .Token }}`.
+The app uses the implicit magic-link flow and sends `emailRedirectTo` as `window.location.origin` plus the base path (`https://cherepaniadmytro-blip.github.io/database-portal/` on the live site). The login form asks for the 6-digit code first. The code is delivered only if the Magic Link email template includes `{{ .Token }}`. The link in the same letter uses `{{ .ConfirmationURL }}`.
 
 ## Invite a partner
 
@@ -112,6 +125,8 @@ Dashboard figures are counted in the browser from the rows the current session i
 - latest `update_history` rows and `last_sync()`
 
 Section, search, and archive tables filter and sort on the client. CSV export downloads the current filtered rows (every page of that filter), with a UTF-8 BOM. New rows (`date_added` today) and updated rows (`last_updated` today, added earlier) are marked. Status colours: green VERIFIED/ACTIVE/COMPLETED, blue NEW, yellow NEEDS REVIEW, orange IN PROGRESS/CONTACTED/WAITING, red EXPIRED, grey ARCHIVED.
+
+The catalog is separate: it sorts by `rating_score` and filters city, country, status and category in the browser from `public_records`.
 
 ## Privacy
 

@@ -30,7 +30,16 @@ export function DashboardPage() {
     <>
       <PageHeader
         title="Панель"
-        meta={`Видимі вам записи · ${roleLabel(auth.role)}. Усі числа рахуються лише з цих рядків.`}
+        meta={
+          counts.total === 0 && !portal.loading
+            ? `Видимі вам записи · ${roleLabel(auth.role)}. Публічний перегляд без входу — у каталозі.`
+            : `Видимі вам записи · ${roleLabel(auth.role)}. Усі числа рахуються лише з цих рядків.`
+        }
+        actions={
+          <Link to={{ pathname: '/', hash: '' }} className="btn btn-ghost">
+            Каталог
+          </Link>
+        }
       />
       {portal.loading && portal.records.length === 0 ? (
         <div className="metrics" aria-hidden="true">
