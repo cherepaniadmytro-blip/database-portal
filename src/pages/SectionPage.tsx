@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { RecordBrowser } from '../components/RecordBrowser.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
+import { useLocale } from '../context/LocaleContext.tsx'
 import { usePortal } from '../context/PortalData.tsx'
 import { visibilityLabel } from '../lib/labels.ts'
 import { canSeeSection, decodeParam } from '../lib/records.ts'
@@ -11,14 +12,15 @@ export function SectionPage() {
   const sectionKey = decodeParam(params.section)
   const portal = usePortal()
   const auth = useAuth()
+  const { locale, t } = useLocale()
   const meta = portal.sections.find((section) => section.section === sectionKey)
   const allowed = meta ? canSeeSection(meta.visible_to, auth.role) : false
 
   if (!portal.loading && portal.sections.length > 0 && !meta) {
     return (
       <>
-        <PageHeader title="Розділ не знайдено" meta={sectionKey} />
-        <p className="empty">Такого розділу немає в section_access.</p>
+        <PageHeader title={t.section.notFound} meta={sectionKey} />
+        <p className="empty">{t.section.missing}</p>
       </>
     )
   }
@@ -26,15 +28,15 @@ export function SectionPage() {
   return (
     <>
       <PageHeader
-        title={meta?.label ?? (portal.loading ? 'Розділ' : sectionKey)}
+        title={meta?.label ?? (portal.loading ? t.section.title : sectionKey)}
         meta={
           meta
-            ? `${meta.section} · видимість: ${visibilityLabel(meta.visible_to)}`
-            : 'Завантаження розділу…'
+            ? t.section.visibilityMeta(meta.section, visibilityLabel(meta.visible_to, locale))
+            : t.section.loading
         }
       />
       {!allowed && meta ? (
-        <p className="empty">Цей розділ закритий для вашої ролі. Записи не показуються.</p>
+        <p className="empty">{t.section.forbidden}</p>
       ) : (
         <RecordBrowser rows={portal.records} filename={sectionKey || 'section'} lockCategory={sectionKey} />
       )}

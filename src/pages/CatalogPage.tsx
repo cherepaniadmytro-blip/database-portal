@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { PageHeader } from '../components/PageHeader.tsx'
+import { useLocale } from '../context/LocaleContext.tsx'
 import { StatusBadge } from '../components/StatusBadge.tsx'
 import { useCatalog } from '../context/CatalogData.tsx'
 import {
   buildCatalogModel,
   displayEntity,
   displayLabel,
-  NON_COMMUNITY_LABEL,
   distinctCategories,
   distinctStatuses,
   distinctText,
@@ -38,13 +38,14 @@ function useCatalogStep(): CatalogStep {
 
 export function CatalogPage() {
   const catalog = useCatalog()
+  const { t } = useLocale()
   const step = useCatalogStep()
   const model = useMemo(() => buildCatalogModel(catalog.rows, catalog.facets), [catalog.rows, catalog.facets])
 
   if (catalog.loading && catalog.rows.length === 0) {
     return (
       <>
-        <PageHeader title="Каталог" meta="Завантаження публічних записів…" />
+        <PageHeader title={t.catalog.title} meta={t.catalog.loading} />
         <div className="catalog-grid" aria-hidden="true">
           {Array.from({ length: 8 }, (_, index) => (
             <div key={index} className="catalog-card skeleton-block" />
@@ -57,11 +58,11 @@ export function CatalogPage() {
   if (catalog.error && catalog.rows.length === 0) {
     return (
       <>
-        <PageHeader title="Каталог" meta="Публічні записи зараз недоступні." />
+        <PageHeader title={t.catalog.title} meta={t.catalog.unavailable} />
         <div className="notice notice-error" role="alert">
           <span>{catalog.error}</span>
           <button type="button" className="btn btn-ghost" onClick={catalog.reload}>
-            Повторити
+            {t.retry}
           </button>
         </div>
       </>
@@ -69,7 +70,7 @@ export function CatalogPage() {
   }
 
   const total = model.groups.reduce((sum, card) => sum + card.count, 0) + (model.aside?.count ?? 0)
-  const fallback = catalog.source === 'records' ? ' Запасне джерело — таблиця records.' : ''
+  const fallback = catalog.source === 'records' ? t.catalog.fallbackSource : ''
 
   return (
     <div data-catalog-step={step.kind}>
@@ -77,7 +78,7 @@ export function CatalogPage() {
         <div className="notice notice-error" role="alert">
           <span>{catalog.error}</span>
           <button type="button" className="btn btn-ghost" onClick={catalog.reload}>
-            Повторити
+            {t.retry}
           </button>
         </div>
       ) : null}
@@ -119,22 +120,23 @@ function GroupsStep({
   aside: CatalogCard | null
   fallback: string
 }) {
+  const { locale, t } = useLocale()
   return (
     <>
       <PageHeader
-        title="Каталог"
-        meta={`Крок 1 з 4. ${formatNumber(total)} ${recordsLabel(total)} без входу. Оберіть мовну або національну групу.${fallback}`}
+        title={t.catalog.title}
+        meta={t.catalog.step1(formatNumber(total), recordsLabel(total, locale), fallback)}
       />
-      <CardGrid cards={cards} hrefFor={(key) => buildCatalogHash({ kind: 'platforms', group: key })} empty="У каталозі ще немає груп." />
+      <CardGrid cards={cards} hrefFor={(key) => buildCatalogHash({ kind: 'platforms', group: key })} empty={t.catalog.emptyGroups} />
       {aside ? (
-        <section className="catalog-aside" aria-label={NON_COMMUNITY_LABEL}>
-          <p className="lede">Записи без мовної спільноти. Це не окрема група.</p>
+        <section className="catalog-aside" aria-label={displayLabel(aside.key, locale)}>
+          <p className="lede">{t.catalog.asideLede}</p>
           <div className="catalog-grid">
             <a className="catalog-card" href={buildCatalogHash({ kind: 'platforms', group: aside.key })}>
-              <h2>{aside.label}</h2>
+              <h2>{displayLabel(aside.key, locale)}</h2>
               <p className="catalog-card-count">
                 <strong>{formatNumber(aside.count)}</strong>
-                {recordsLabel(aside.count)}
+                {recordsLabel(aside.count, locale)}
               </p>
             </a>
           </div>
@@ -145,19 +147,20 @@ function GroupsStep({
 }
 
 function PlatformsStep({ group, cards }: { group: string; cards: CatalogCard[] }) {
+  const { locale, t } = useLocale()
   const total = cards.reduce((sum, card) => sum + card.count, 0)
   return (
     <>
       <Crumbs
         items={[
-          { label: 'Каталог', href: buildCatalogHash({ kind: 'groups' }) },
-          { label: displayLabel(group), current: true },
+          { label: t.catalog.title, href: buildCatalogHash({ kind: 'groups' }) },
+          { label: displayLabel(group, locale), current: true },
         ]}
       />
       <PageHeader
-        title={displayLabel(group)}
-        meta={`Крок 2 з 4. ${formatNumber(total)} ${recordsLabel(total)}. Оберіть платформу або тип.`}
-        actions={<a className="btn btn-ghost" href={buildCatalogHash({ kind: 'groups' })}>Назад</a>}
+        title={displayLabel(group, locale)}
+        meta={t.catalog.step2(formatNumber(total), recordsLabel(total, locale))}
+        actions={<a className="btn btn-ghost" href={buildCatalogHash({ kind: 'groups' })}>{t.back}</a>}
       />
       <CardGrid
         cards={cards}
@@ -169,7 +172,7 @@ function PlatformsStep({ group, cards }: { group: string; cards: CatalogCard[] }
             filters: { q: '', city: '', country: '', status: '', category: '' },
           })
         }
-        empty="У цій групі немає записів."
+        empty={t.catalog.emptyPlatforms}
       />
     </>
   )
@@ -194,6 +197,7 @@ function ListStep({
   const categories = distinctCategories(scoped)
   const parent = buildCatalogHash({ kind: 'platforms', group })
   const active = Boolean(filters.q || filters.city || filters.country || filters.status || filters.category)
+  const { locale, t } = useLocale()
 
   function setFilter(patch: Partial<CatalogFilters>) {
     replaceCatalogHash(
@@ -210,30 +214,30 @@ function ListStep({
     <>
       <Crumbs
         items={[
-          { label: 'Каталог', href: buildCatalogHash({ kind: 'groups' }) },
-          { label: displayLabel(group), href: parent },
-          { label: displayLabel(platform), current: true },
+          { label: t.catalog.title, href: buildCatalogHash({ kind: 'groups' }) },
+          { label: displayLabel(group, locale), href: parent },
+          { label: displayLabel(platform, locale), current: true },
         ]}
       />
       <PageHeader
-        title={displayLabel(platform)}
-        meta={`Крок 3 з 4 · ${displayLabel(group)}. ${formatNumber(filtered.length)} з ${formatNumber(scoped.length)}. Сортування за рейтингом; без оцінки — за пріоритетом.`}
-        actions={<a className="btn btn-ghost" href={parent}>Назад</a>}
+        title={displayLabel(platform, locale)}
+        meta={t.catalog.step3(displayLabel(group, locale), formatNumber(filtered.length), formatNumber(scoped.length))}
+        actions={<a className="btn btn-ghost" href={parent}>{t.back}</a>}
       />
       <form className="filters" role="search" onSubmit={(event) => event.preventDefault()}>
         <label className="field field-grow">
-          <span>Пошук</span>
+          <span>{t.catalog.search}</span>
           <input
             type="search"
             value={filters.q}
-            placeholder="Назва, місто, опис"
+            placeholder={t.catalog.searchPlaceholder}
             onChange={(event) => setFilter({ q: event.target.value })}
           />
         </label>
         <label className="field">
-          <span>Місто</span>
+          <span>{t.catalog.city}</span>
           <select value={filters.city} onChange={(event) => setFilter({ city: event.target.value })}>
-            <option value="">Усі</option>
+            <option value="">{t.all}</option>
             {cities.map((city) => (
               <option key={city} value={city}>
                 {city}
@@ -242,9 +246,9 @@ function ListStep({
           </select>
         </label>
         <label className="field">
-          <span>Країна</span>
+          <span>{t.catalog.country}</span>
           <select value={filters.country} onChange={(event) => setFilter({ country: event.target.value })}>
-            <option value="">Усі</option>
+            <option value="">{t.all}</option>
             {countries.map((country) => (
               <option key={country} value={country}>
                 {country}
@@ -253,9 +257,9 @@ function ListStep({
           </select>
         </label>
         <label className="field">
-          <span>Статус</span>
+          <span>{t.catalog.status}</span>
           <select value={filters.status} onChange={(event) => setFilter({ status: event.target.value })}>
-            <option value="">Усі</option>
+            <option value="">{t.all}</option>
             {statuses.map((status) => (
               <option key={status} value={status}>
                 {status}
@@ -264,9 +268,9 @@ function ListStep({
           </select>
         </label>
         <label className="field">
-          <span>Категорія</span>
+          <span>{t.catalog.category}</span>
           <select value={filters.category} onChange={(event) => setFilter({ category: event.target.value })}>
-            <option value="">Усі</option>
+            <option value="">{t.all}</option>
             {categories.map((category) => (
               <option key={category.value} value={category.value}>
                 {category.label}
@@ -276,21 +280,21 @@ function ListStep({
         </label>
         {active ? (
           <button type="button" className="btn btn-ghost filter-reset" onClick={() => setFilter({ q: '', city: '', country: '', status: '', category: '' })}>
-            Скинути
+            {t.reset}
           </button>
         ) : null}
       </form>
       {filtered.length === 0 ? (
-        <p className="empty">Немає записів за цими умовами.</p>
+        <p className="empty">{t.catalog.emptyFiltered}</p>
       ) : (
         <div className="catalog-table">
           <div className="catalog-head" aria-hidden="true">
             <span>#</span>
-            <span>Назва</span>
-            <span>Місто</span>
-            <span>Аудиторія</span>
-            <span>Рейтинг</span>
-            <span>Статус</span>
+            <span>{t.catalog.name}</span>
+            <span>{t.catalog.city}</span>
+            <span>{t.catalog.audience}</span>
+            <span>{t.catalog.rating}</span>
+            <span>{t.catalog.status}</span>
           </div>
           <ol className="catalog-list">
             {filtered.map((row, index) => (
@@ -303,11 +307,11 @@ function ListStep({
                   <span className="catalog-name">{row.name}</span>
                   <span className="catalog-city">{row.place || '—'}</span>
                   <span className="catalog-aud">
-                    <span className="cell-label">Аудиторія</span>
+                    <span className="cell-label">{t.catalog.audience}</span>
                     {formatAudience(row.audienceSize)}
                   </span>
                   <span className="catalog-rate">
-                    <span className="cell-label">Рейтинг</span>
+                    <span className="cell-label">{t.catalog.rating}</span>
                     {formatMaybeNumber(row.ratingScore)}
                   </span>
                   <span className="catalog-status">
@@ -338,37 +342,38 @@ function DetailStep({
 }) {
   const row = rows.find((item) => item.id === id)
   const listHref = buildCatalogHash({ kind: 'list', group, platform, filters })
+  const { locale, t } = useLocale()
   if (!row) {
     return (
       <>
         <Crumbs
           items={[
-            { label: 'Каталог', href: buildCatalogHash({ kind: 'groups' }) },
-            { label: displayLabel(group), href: buildCatalogHash({ kind: 'platforms', group }) },
-            { label: displayLabel(platform), href: listHref },
-            { label: 'Запис', current: true },
+            { label: t.catalog.title, href: buildCatalogHash({ kind: 'groups' }) },
+            { label: displayLabel(group, locale), href: buildCatalogHash({ kind: 'platforms', group }) },
+            { label: displayLabel(platform, locale), href: listHref },
+            { label: t.catalog.record, current: true },
           ]}
         />
-        <PageHeader title="Запис не знайдено" meta={id} actions={<a className="btn btn-ghost" href={listHref}>Назад</a>} />
-        <p className="empty">Цього запису немає у публічному каталозі.</p>
+        <PageHeader title={t.catalog.notFound} meta={id} actions={<a className="btn btn-ghost" href={listHref}>{t.back}</a>} />
+        <p className="empty">{t.catalog.notInCatalog}</p>
       </>
     )
   }
 
   const links = [
-    { label: 'Вебсайт', href: safeUrl(row.website) },
-    { label: 'Джерело', href: safeUrl(row.sourceUrl) },
-    { label: 'Деталі', href: safeUrl(row.detailsLink) },
+    { label: t.catalog.website, href: safeUrl(row.website) },
+    { label: t.catalog.source, href: safeUrl(row.sourceUrl) },
+    { label: t.catalog.details, href: safeUrl(row.detailsLink) },
   ].filter((item) => item.href)
 
   return (
     <>
       <Crumbs
         items={[
-          { label: 'Каталог', href: buildCatalogHash({ kind: 'groups' }) },
-          { label: displayLabel(row.languageGroup), href: buildCatalogHash({ kind: 'platforms', group: row.languageGroup }) },
+          { label: t.catalog.title, href: buildCatalogHash({ kind: 'groups' }) },
+          { label: displayLabel(row.languageGroup, locale), href: buildCatalogHash({ kind: 'platforms', group: row.languageGroup }) },
           {
-            label: displayLabel(row.platform),
+            label: displayLabel(row.platform, locale),
             href: buildCatalogHash({
               kind: 'list',
               group: row.languageGroup,
@@ -383,43 +388,43 @@ function DetailStep({
         title={row.name}
         meta={
           <>
-            Крок 4 з 4 · {row.categoryLabel || row.category || 'Без розділу'} · <span className="mono">{row.id}</span>
+            {t.catalog.step4(row.categoryLabel || row.category || t.catalog.noSection)} · <span className="mono">{row.id}</span>
           </>
         }
-        actions={<a className="btn btn-ghost" href={listHref}>Назад</a>}
+        actions={<a className="btn btn-ghost" href={listHref}>{t.back}</a>}
       />
       <div className="detail">
         <section className="panel">
           {row.description ? <p className="lead">{row.description}</p> : null}
           <dl className="facts">
-            <Fact label="Розділ" value={row.categoryLabel || row.category} />
-            <Fact label="Підкатегорія" value={row.subcategory} />
-            <Fact label="Організація" value={row.organization} />
-            <Fact label="Країна" value={row.country} />
-            <Fact label="Місто" value={row.city} />
-            <Fact label="Регіон" value={row.cityRegion} />
-            <Fact label="Аудиторія" value={formatAudience(row.audienceSize)} keep />
-            <Fact label="Звідки аудиторія" value={row.audienceSource} />
-            <Fact label="Мовна група" value={row.languageGroupLabel || displayLabel(row.languageGroup)} />
-            <Fact label="Національність" value={row.nationality} />
-            <Fact label="Мова / спільнота" value={row.languageCommunity} />
-            <Fact label="Платформа" value={displayLabel(row.platform)} />
-            <Fact label="Тип" value={displayEntity(row.entityType)} />
-            <Fact label="Статус" value={row.status ? <StatusBadge status={row.status} /> : null} />
-            <Fact label="Пріоритет" value={row.priority} />
-            <Fact label="Рейтинг" value={formatMaybeNumber(row.ratingScore)} keep />
-            <Fact label="Надійність" value={row.reliability == null ? null : formatMaybeNumber(row.reliability)} />
-            <Fact label="Потенціал" value={row.potential == null ? null : formatMaybeNumber(row.potential)} />
-            <Fact label="Тип партнера" value={row.partnerType} />
-            <Fact label="Джерело" value={row.source} />
-            <Fact label="Дата публікації" value={row.publishedDate ? formatDay(row.publishedDate) : null} />
+            <Fact label={t.catalog.section} value={row.categoryLabel || row.category} />
+            <Fact label={t.catalog.subcategory} value={row.subcategory} />
+            <Fact label={t.catalog.organization} value={row.organization} />
+            <Fact label={t.catalog.country} value={row.country} />
+            <Fact label={t.catalog.city} value={row.city} />
+            <Fact label={t.catalog.region} value={row.cityRegion} />
+            <Fact label={t.catalog.audience} value={formatAudience(row.audienceSize)} keep />
+            <Fact label={t.catalog.audienceSource} value={row.audienceSource} />
+            <Fact label={t.catalog.languageGroup} value={displayLabel(row.languageGroup, locale)} />
+            <Fact label={t.catalog.nationality} value={row.nationality} />
+            <Fact label={t.catalog.languageCommunity} value={row.languageCommunity} />
+            <Fact label={t.catalog.platform} value={displayLabel(row.platform, locale)} />
+            <Fact label={t.catalog.type} value={displayEntity(row.entityType, locale)} />
+            <Fact label={t.catalog.status} value={row.status ? <StatusBadge status={row.status} /> : null} />
+            <Fact label={t.catalog.priority} value={row.priority} />
+            <Fact label={t.catalog.rating} value={formatMaybeNumber(row.ratingScore)} keep />
+            <Fact label={t.catalog.reliability} value={row.reliability == null ? null : formatMaybeNumber(row.reliability)} />
+            <Fact label={t.catalog.potential} value={row.potential == null ? null : formatMaybeNumber(row.potential)} />
+            <Fact label={t.catalog.partnerType} value={row.partnerType} />
+            <Fact label={t.catalog.source} value={row.source} />
+            <Fact label={t.catalog.published} value={row.publishedDate ? formatDay(row.publishedDate) : null} />
           </dl>
         </section>
         <aside className="rail">
           <section className="panel">
-            <h2>Посилання</h2>
+            <h2>{t.catalog.links}</h2>
             {links.length === 0 ? (
-              <p className="empty">Немає публічних посилань.</p>
+              <p className="empty">{t.catalog.noPublicLinks}</p>
             ) : (
               <ul className="link-list">
                 {links.map((link) => (
@@ -434,22 +439,22 @@ function DetailStep({
           </section>
           <OwnerNotes id={row.id} />
           <section className="panel">
-            <h2>Дати</h2>
+            <h2>{t.catalog.dates}</h2>
             <dl className="rail-facts">
               <div>
-                <dt>Додано</dt>
+                <dt>{t.catalog.added}</dt>
                 <dd>{formatDay(row.dateAdded)}</dd>
               </div>
               <div>
-                <dt>Оновлено</dt>
+                <dt>{t.catalog.updated}</dt>
                 <dd>{formatDay(row.lastUpdated)}</dd>
               </div>
               <div>
-                <dt>Перевірено</dt>
+                <dt>{t.catalog.checked}</dt>
                 <dd>{formatDay(row.lastChecked)}</dd>
               </div>
               <div>
-                <dt>Синхронізовано</dt>
+                <dt>{t.catalog.synced}</dt>
                 <dd>{formatDateTime(row.syncedAt)}</dd>
               </div>
             </dl>
@@ -479,15 +484,16 @@ function CardGrid({
   hrefFor: (key: string) => string
   empty: string
 }) {
+  const { locale } = useLocale()
   if (cards.length === 0) return <p className="empty">{empty}</p>
   return (
     <div className="catalog-grid">
       {cards.map((card) => (
         <a key={card.key} className="catalog-card" href={hrefFor(card.key)}>
-          <h2>{card.label}</h2>
+          <h2>{displayLabel(card.key, locale)}</h2>
           <p className="catalog-card-count">
             <strong>{formatNumber(card.count)}</strong>
-            {recordsLabel(card.count)}
+            {recordsLabel(card.count, locale)}
           </p>
         </a>
       ))}
@@ -496,8 +502,9 @@ function CardGrid({
 }
 
 function Crumbs({ items }: { items: Array<{ label: string; href?: string; current?: boolean }> }) {
+  const { t } = useLocale()
   return (
-    <nav className="crumbs" aria-label="Кроки каталогу">
+    <nav className="crumbs" aria-label={t.catalog.crumbs}>
       {items.map((item, index) => (
         <span key={`${item.label}-${index}`} className="crumb">
           {item.href && !item.current ? <a href={item.href}>{item.label}</a> : <span aria-current={item.current ? 'page' : undefined}>{item.label}</span>}

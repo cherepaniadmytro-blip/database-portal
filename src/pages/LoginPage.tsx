@@ -2,11 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
+import { useT } from '../context/LocaleContext.tsx'
 import { authRedirectTo } from '../lib/supabase.ts'
 
 export function LoginPage() {
   const auth = useAuth()
   const navigate = useNavigate()
+  const t = useT()
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [pending, setPending] = useState<'link' | 'code' | null>(null)
@@ -26,11 +28,15 @@ export function LoginPage() {
       setError(result.error)
       return
     }
+    if (result.rateLimited) {
+      setError(t.auth.rateLimit)
+      return
+    }
     if (result.error) {
       setError(result.error)
       return
     }
-    setInfo('Лист надіслано. Введіть 6 цифр із листа. Посилання в листі теж відкриє сесію.')
+    setInfo(t.auth.sent)
   }
 
   async function verify(event: FormEvent) {
@@ -45,6 +51,10 @@ export function LoginPage() {
       setError(result.error)
       return
     }
+    if (result.rateLimited) {
+      setError(t.auth.rateLimit)
+      return
+    }
     if (result.error) {
       setError(result.error)
       return
@@ -57,20 +67,20 @@ export function LoginPage() {
   if (auth.email) {
     return (
       <>
-        <PageHeader title="Вхід" meta="Сесія вже відкрита." />
+        <PageHeader title={t.auth.title} meta={t.auth.alreadyMeta} />
         <section className="login-card panel">
           <p>
-            Ви увійшли як <strong>{auth.email}</strong>.
+            {t.auth.signedInAs} <strong>{auth.email}</strong>.
           </p>
           <div className="page-actions">
             <Link className="btn btn-primary" to={{ pathname: '/', hash: '' }}>
-              До каталогу
+              {t.auth.toCatalog}
             </Link>
             <Link className="btn btn-ghost" to="/dashboard">
-              На панель
+              {t.auth.toDashboard}
             </Link>
             <button type="button" className="btn btn-ghost" onClick={() => void auth.signOut()}>
-              Вийти
+              {t.logout}
             </button>
           </div>
         </section>
@@ -80,17 +90,14 @@ export function LoginPage() {
 
   return (
     <>
-      <PageHeader
-        title="Вхід"
-        meta="Необов'язково. Каталог відкритий без входу. Для власника — 6-значний код з листа."
-      />
+      <PageHeader title={t.auth.title} meta={t.auth.meta} />
       <section className="login-card panel">
         <form
           onSubmit={(event) => void verify(event)}
           className="stack"
         >
           <label className="field">
-            <span>Ел. пошта</span>
+            <span>{t.auth.email}</span>
             <input
               type="email"
               required
@@ -101,7 +108,7 @@ export function LoginPage() {
             />
           </label>
           <label className="field">
-            <span>Код із 6 цифр</span>
+            <span>{t.auth.code}</span>
             <input
               inputMode="numeric"
               autoComplete="one-time-code"
@@ -114,17 +121,17 @@ export function LoginPage() {
           </label>
           <div className="page-actions">
             <button className="btn btn-primary" type="submit" disabled={pending !== null || code.trim().length < 6 || !email.trim()}>
-              {pending === 'code' ? 'Перевірка…' : 'Увійти кодом'}
+              {pending === 'code' ? t.auth.verifying : t.auth.submitCode}
             </button>
             <button className="btn btn-ghost" type="button" disabled={pending !== null || !email.trim()} onClick={() => void sendLink()}>
-              {pending === 'link' ? 'Надсилання…' : 'Надіслати код'}
+              {pending === 'link' ? t.auth.sending : t.auth.sendLink}
             </button>
           </div>
         </form>
         {inviteOnly ? (
           <div className="invite-only" role="alert">
-            <strong>Реєстрація лише за запрошенням</strong>
-            <p>Цієї адреси немає в списку invited_emails. Власник має додати її в адмініструванні, після цього вхід спрацює.</p>
+            <strong>{t.auth.inviteTitle}</strong>
+            <p>{t.auth.inviteBody}</p>
             <p className="mono invite-code">Sign-up is invite-only</p>
           </div>
         ) : error ? (
@@ -134,7 +141,7 @@ export function LoginPage() {
         ) : null}
         {info ? <p className="notice notice-ok">{info}</p> : null}
         <p className="desc">
-          Введіть 6 цифр із листа. Посилання в тому ж листі відкриває{' '}
+          {t.auth.hint}{' '}
           <span className="mono">{redirectTo}</span>.
         </p>
       </section>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLocale } from '../context/LocaleContext.tsx'
 import { downloadCsv, recordsToCsv } from '../lib/csv.ts'
 import {
   EMPTY_FILTERS,
@@ -17,11 +18,7 @@ import { StatusBadge } from './StatusBadge.tsx'
 
 const PAGE_SIZE = 50
 
-const DATE_FIELDS: { value: FilterState['dateField']; label: string }[] = [
-  { value: 'date_added', label: 'Дата додавання' },
-  { value: 'last_updated', label: 'Останнє оновлення' },
-  { value: 'last_verified', label: 'Остання перевірка' },
-]
+const DATE_FIELD_KEYS: FilterState['dateField'][] = ['date_added', 'last_updated', 'last_verified']
 
 type Column = {
   key: SortKey
@@ -52,6 +49,7 @@ export function RecordBrowser({
   onQueryChange?: (query: string) => void
 }) {
   const navigate = useNavigate()
+  const { t } = useLocale()
   const [filters, setFilters] = useState<FilterState>({ ...EMPTY_FILTERS, q: query ?? '' })
   const [sortKey, setSortKey] = useState<SortKey>('potential')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -100,15 +98,15 @@ export function RecordBrowser({
   const columns: Column[] = [
     {
       key: 'name',
-      label: 'Назва',
+      label: t.browser.name,
       render: (row) => {
         const fresh = rowFreshness(row, today)
         return (
           <div className="name-cell">
             <span className="name-line">
               <span>{row.name}</span>
-              {fresh === 'new' ? <span className="mark mark-new">Нове</span> : null}
-              {fresh === 'updated' ? <span className="mark mark-updated">Оновлено</span> : null}
+              {fresh === 'new' ? <span className="mark mark-new">{t.browser.markNew}</span> : null}
+              {fresh === 'updated' ? <span className="mark mark-updated">{t.browser.markUpdated}</span> : null}
             </span>
             {row.short_description ? <span className="desc">{row.short_description}</span> : null}
           </div>
@@ -119,50 +117,50 @@ export function RecordBrowser({
       ? [
           {
             key: 'category' as const,
-            label: 'Розділ',
+            label: t.browser.section,
             render: (row: RecordRow) => row.category,
           },
         ]
       : []),
     {
       key: 'subcategory',
-      label: 'Підкатегорія',
+      label: t.browser.subcategory,
       className: 'col-sub',
       render: (row) => <span className="clip-2">{row.subcategory || '—'}</span>,
     },
     {
       key: 'country',
-      label: 'Країна',
+      label: t.browser.country,
       className: 'col-tight',
       render: (row) => row.country || '—',
     },
     {
       key: 'status',
-      label: 'Статус',
+      label: t.browser.status,
       className: 'col-tight',
       render: (row) => <StatusBadge status={row.status} />,
     },
     {
       key: 'priority',
-      label: 'Пріоритет',
+      label: t.browser.priority,
       className: 'col-num',
       render: (row) => row.priority || '—',
     },
     {
       key: 'potential',
-      label: 'Потенціал',
+      label: t.browser.potential,
       className: 'col-num',
       render: (row) => (row.potential == null ? '—' : String(row.potential)),
     },
     {
       key: 'date_added',
-      label: 'Додано',
+      label: t.browser.added,
       className: 'col-date',
       render: (row) => formatCellDate(row.date_added),
     },
     {
       key: 'last_updated',
-      label: 'Оновлено',
+      label: t.browser.updated,
       className: 'col-date',
       render: (row) => formatCellDate(row.last_updated),
     },
@@ -175,19 +173,19 @@ export function RecordBrowser({
     <div className="browser">
       <div className="filters">
         <label className="field field-grow">
-          <span>Пошук</span>
+          <span>{t.browser.search}</span>
           <input
             value={filters.q}
             onChange={(event) => patch({ q: event.target.value })}
-            placeholder="Назва, опис, країна, нотатки, ID"
+            placeholder={t.browser.searchPlaceholder}
             type="search"
           />
         </label>
         {showCategory && !lockCategory ? (
           <label className="field">
-            <span>Розділ</span>
+            <span>{t.browser.section}</span>
             <select value={filters.category} onChange={(event) => patch({ category: event.target.value })}>
-              <option value="">Усі</option>
+              <option value="">{t.browser.all}</option>
               {categories.map((value) => (
                 <option key={value} value={value}>
                   {value}
@@ -197,9 +195,9 @@ export function RecordBrowser({
           </label>
         ) : null}
         <label className="field">
-          <span>Статус</span>
+          <span>{t.browser.status}</span>
           <select value={filters.status} onChange={(event) => patch({ status: event.target.value })}>
-            <option value="">Усі</option>
+            <option value="">{t.browser.all}</option>
             {statuses.map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -208,9 +206,9 @@ export function RecordBrowser({
           </select>
         </label>
         <label className="field">
-          <span>Пріоритет</span>
+          <span>{t.browser.priority}</span>
           <select value={filters.priority} onChange={(event) => patch({ priority: event.target.value })}>
-            <option value="">Усі</option>
+            <option value="">{t.browser.all}</option>
             {priorities.map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -219,9 +217,9 @@ export function RecordBrowser({
           </select>
         </label>
         <label className="field">
-          <span>Країна</span>
+          <span>{t.browser.country}</span>
           <select value={filters.country} onChange={(event) => patch({ country: event.target.value })}>
-            <option value="">Усі</option>
+            <option value="">{t.browser.all}</option>
             {countries.map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -230,26 +228,26 @@ export function RecordBrowser({
           </select>
         </label>
         <label className="field">
-          <span>Поле дати</span>
+          <span>{t.browser.dateField}</span>
           <select
             value={filters.dateField}
             onChange={(event) => {
               if (isDateField(event.target.value)) patch({ dateField: event.target.value })
             }}
           >
-            {DATE_FIELDS.map((field) => (
-              <option key={field.value} value={field.value}>
-                {field.label}
+            {DATE_FIELD_KEYS.map((value) => (
+              <option key={value} value={value}>
+                {value === 'date_added' ? t.browser.dateAdded : value === 'last_updated' ? t.browser.lastUpdated : t.browser.lastVerified}
               </option>
             ))}
           </select>
         </label>
         <label className="field">
-          <span>Від</span>
+          <span>{t.browser.from}</span>
           <input type="date" value={filters.dateFrom} onChange={(event) => patch({ dateFrom: event.target.value })} />
         </label>
         <label className="field">
-          <span>До</span>
+          <span>{t.browser.to}</span>
           <input type="date" value={filters.dateTo} onChange={(event) => patch({ dateTo: event.target.value })} />
         </label>
         <button
@@ -261,23 +259,23 @@ export function RecordBrowser({
             setPage(0)
           }}
         >
-          Скинути
+          {t.browser.reset}
         </button>
       </div>
 
       <div className="toolbar">
         <p className="toolbar-count">
           {sorted.length === scoped.length
-            ? `${sorted.length} записів`
-            : `${sorted.length} з ${scoped.length}`}
+            ? t.browser.countAll(sorted.length)
+            : t.browser.countFiltered(sorted.length, scoped.length)}
           {sorted.length > 0 ? ` · ${from}–${to}` : ''}
         </p>
         <p className="legend">
-          <i className="swatch swatch-new" /> додано сьогодні
-          <i className="swatch swatch-updated" /> оновлено сьогодні
+          <i className="swatch swatch-new" /> {t.browser.addedToday}
+          <i className="swatch swatch-updated" /> {t.browser.updatedToday}
         </p>
         <button type="button" className="btn btn-primary" onClick={exportCsv} disabled={sorted.length === 0}>
-          Експорт CSV · {sorted.length}
+          {t.browser.export(sorted.length)}
         </button>
       </div>
 
@@ -306,7 +304,7 @@ export function RecordBrowser({
             {visible.length === 0 ? (
               <tr>
                 <td className="empty-cell" colSpan={columns.length}>
-                  Немає записів за цими умовами.
+                  {t.browser.empty}
                 </td>
               </tr>
             ) : (
@@ -338,7 +336,7 @@ export function RecordBrowser({
       {pageCount > 1 ? (
         <div className="pager">
           <button type="button" className="btn btn-ghost" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
-            Назад
+            {t.back}
           </button>
           <span>
             {safePage + 1} / {pageCount}
@@ -349,7 +347,7 @@ export function RecordBrowser({
             disabled={safePage >= pageCount - 1}
             onClick={() => setPage(safePage + 1)}
           >
-            Далі
+            {t.next}
           </button>
         </div>
       ) : null}

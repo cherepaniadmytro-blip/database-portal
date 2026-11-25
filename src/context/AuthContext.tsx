@@ -1,9 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { authRedirectTo, isInviteOnlyError, supabase } from '../lib/supabase.ts'
+import { authRedirectTo, isInviteOnlyError, isRateLimitError, supabase } from '../lib/supabase.ts'
 import type { Role } from '../lib/types.ts'
 
-type AuthResult = { error: string | null; inviteOnly: boolean }
+type AuthResult = { error: string | null; inviteOnly: boolean; rateLimited: boolean }
 
 type AuthValue = {
   ready: boolean
@@ -25,9 +25,10 @@ function asRole(value: unknown): Role {
 }
 
 function describe(error: { message: string; code?: string } | null): AuthResult {
-  if (!error) return { error: null, inviteOnly: false }
-  if (isInviteOnlyError(error)) return { error: error.message, inviteOnly: true }
-  return { error: error.message, inviteOnly: false }
+  if (!error) return { error: null, inviteOnly: false, rateLimited: false }
+  if (isInviteOnlyError(error)) return { error: error.message, inviteOnly: true, rateLimited: false }
+  if (isRateLimitError(error)) return { error: error.message, inviteOnly: false, rateLimited: true }
+  return { error: error.message, inviteOnly: false, rateLimited: false }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { StatusBadge } from '../components/StatusBadge.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
+import { useLocale } from '../context/LocaleContext.tsx'
 import { usePortal } from '../context/PortalData.tsx'
 import { changeTypeLabel, roleLabel, syncStatusLabel } from '../lib/labels.ts'
 import {
@@ -18,6 +19,7 @@ import {
 export function DashboardPage() {
   const portal = usePortal()
   const auth = useAuth()
+  const { locale, t } = useLocale()
   const today = todayISO()
   const counts = dashboardCounts(portal.records, today)
   const top = topRecords(portal.records, 10)
@@ -29,15 +31,15 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Панель"
+        title={t.dashboard.title}
         meta={
           counts.total === 0 && !portal.loading
-            ? `Видимі вам записи · ${roleLabel(auth.role)}. Публічний перегляд без входу — у каталозі.`
-            : `Видимі вам записи · ${roleLabel(auth.role)}. Усі числа рахуються лише з цих рядків.`
+            ? t.dashboard.metaPublic(roleLabel(auth.role, locale))
+            : t.dashboard.metaSignedIn(roleLabel(auth.role, locale))
         }
         actions={
           <Link to={{ pathname: '/', hash: '' }} className="btn btn-ghost">
-            Каталог
+            {t.nav.catalog}
           </Link>
         }
       />
@@ -50,39 +52,39 @@ export function DashboardPage() {
         </div>
       ) : (
         <>
-          <section className="metrics" aria-label="Підсумки">
-            <Metric label="Усього записів" value={formatNumber(counts.total)} hint="видимі вам" />
-            <Metric label="Нові сьогодні" value={formatNumber(counts.newToday)} hint="date_added = сьогодні" />
+          <section className="metrics" aria-label={t.dashboard.totals}>
+            <Metric label={t.dashboard.totalRecords} value={formatNumber(counts.total)} hint={t.dashboard.visibleToYou} />
+            <Metric label={t.dashboard.newToday} value={formatNumber(counts.newToday)} hint={t.dashboard.newTodayHint} />
             <Metric
-              label="Оновлені сьогодні"
+              label={t.dashboard.updatedToday}
               value={formatNumber(counts.updatedToday)}
-              hint="last_updated, без щойно доданих"
+              hint={t.dashboard.updatedTodayHint}
             />
             <Metric
-              label="Остання синхронізація"
+              label={t.dashboard.lastSync}
               value={sync?.last_success_at ? formatDateTime(sync.last_success_at) : '—'}
-              hint={sync ? `${sync.source} · ${syncStatusLabel(sync.status)}` : 'last_sync()'}
+              hint={sync ? `${sync.source} · ${syncStatusLabel(sync.status, locale)}` : 'last_sync()'}
             />
           </section>
-          <section className="metrics metrics-secondary" aria-label="Нове за розділами">
-            <Metric label="Нові вакансії" value={formatNumber(counts.newJobs)} hint="Jobs & Freelance · NEW або сьогодні" />
-            <Metric label="Нові партнери" value={formatNumber(counts.newPartners)} hint="Partners · NEW або сьогодні" />
+          <section className="metrics metrics-secondary" aria-label={t.dashboard.newBySection}>
+            <Metric label={t.dashboard.newJobs} value={formatNumber(counts.newJobs)} hint={t.dashboard.newJobsHint} />
+            <Metric label={t.dashboard.newPartners} value={formatNumber(counts.newPartners)} hint={t.dashboard.newPartnersHint} />
             <Metric
-              label="Нові бізнес-можливості"
+              label={t.dashboard.newOpps}
               value={formatNumber(counts.newOpportunities)}
-              hint="Business Opportunities · NEW або сьогодні"
+              hint={t.dashboard.newOppsHint}
             />
           </section>
           <p className="fineprint">
-            Сьогодні — {todayLabel}, календар Europe/Bratislava. Оцінка в топі: вага пріоритету (P1 найвищий) × 10 + потенціал.
+            {t.dashboard.fineprint(todayLabel)}
           </p>
           <div className="split">
             <section className="panel">
               <div className="panel-head">
-                <h2>Топ 10 за пріоритетом і потенціалом</h2>
+                <h2>{t.dashboard.top10}</h2>
               </div>
               {top.length === 0 ? (
-                <p className="empty">Немає видимих записів.</p>
+                <p className="empty">{t.dashboard.noVisible}</p>
               ) : (
                 <ol className="rank-list">
                   {top.map((row, index) => (
@@ -93,7 +95,7 @@ export function DashboardPage() {
                         <span className="desc">{row.category}</span>
                       </div>
                       <StatusBadge status={row.status} />
-                      <span className="rank-score" title={`Пріоритет ${row.priority ?? '—'} · потенціал ${row.potential ?? '—'}`}>
+                      <span className="rank-score" title={t.dashboard.scoreTitle(row.priority ?? t.dash, String(row.potential ?? t.dash))}>
                         {formatScore(rankScore(row))}
                       </span>
                     </li>
@@ -103,20 +105,20 @@ export function DashboardPage() {
             </section>
             <section className="panel">
               <div className="panel-head">
-                <h2>Останні оновлення</h2>
+                <h2>{t.dashboard.recent}</h2>
                 <Link to="/history" className="text-link">
-                  Уся історія
+                  {t.dashboard.allHistory}
                 </Link>
               </div>
               {latest.length === 0 ? (
-                <p className="empty">Історія для видимих записів порожня.</p>
+                <p className="empty">{t.dashboard.historyEmpty}</p>
               ) : (
                 <ul className="history-list">
                   {latest.map((item) => (
                     <li key={item.id}>
                       <div className="history-top">
                         <span className="mono">{item.changed_at}</span>
-                        <span className="mark mark-neutral">{changeTypeLabel(item.change_type)}</span>
+                        <span className="mark mark-neutral">{changeTypeLabel(item.change_type, locale)}</span>
                       </div>
                       <div>
                         {item.record_id ? (
@@ -135,14 +137,14 @@ export function DashboardPage() {
               )}
               {portal.sync.length > 0 ? (
                 <>
-                <p className="desc">Обсяг прогону з last_sync(), не кількість видимих записів.</p>
+                <p className="desc">{t.dashboard.syncNote}</p>
                 <ul className="sync-list">
                   {portal.sync.map((item) => (
                     <li key={item.source}>
                       <span className="mono">{item.source}</span>
                       <span>{item.last_success_at ? formatDateTime(item.last_success_at) : '—'}</span>
-                      <span>{syncStatusLabel(item.status)}</span>
-                      <span>{item.records_synced == null ? '—' : `${formatNumber(item.records_synced)} рядків`}</span>
+                      <span>{syncStatusLabel(item.status, locale)}</span>
+                      <span>{item.records_synced == null ? '—' : t.dashboard.rows(formatNumber(item.records_synced))}</span>
                     </li>
                   ))}
                 </ul>

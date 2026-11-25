@@ -2,18 +2,17 @@ import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { RecordBrowser } from '../components/RecordBrowser.tsx'
 import { usePortal } from '../context/PortalData.tsx'
+import { useT } from '../context/LocaleContext.tsx'
 
 export function SearchPage() {
   const portal = usePortal()
+  const t = useT()
   const [params, setParams] = useSearchParams()
   const query = params.get('q') ?? ''
 
   return (
     <>
-      <PageHeader
-        title="Пошук"
-        meta="По всіх полях видимих записів: назва, опис, країна, джерело, нотатки, ID."
-      />
+      <PageHeader title={t.search.title} meta={t.search.meta} />
       <RecordBrowser
         rows={portal.records}
         filename="search"

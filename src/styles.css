@@ -562,6 +562,36 @@ html[data-theme='dark'] .badge-grey { color: #d0c8bc; background: #2a2926; }
 }
 .text-login:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 5%, transparent); }
 
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line, color-mix(in srgb, currentColor 16%, transparent));
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+.lang-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted, inherit);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  line-height: 1;
+}
+.lang-btn:hover { color: var(--ink, inherit); }
+.lang-btn.active {
+  background: var(--accent, #0f766e);
+  color: var(--brand-ink, #fff);
+}
+
+
 .notice {
   display: flex;
   justify-content: space-between;

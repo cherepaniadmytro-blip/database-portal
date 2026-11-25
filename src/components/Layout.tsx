@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
+import { useLocale } from '../context/LocaleContext.tsx'
 import { usePortal } from '../context/PortalData.tsx'
 import { useTheme } from '../context/ThemeContext.tsx'
 import { roleLabel } from '../lib/labels.ts'
@@ -13,6 +15,7 @@ function cx(...parts: Array<string | false | null | undefined>): string {
 export function Layout() {
   const auth = useAuth()
   const portal = usePortal()
+  const { locale, t } = useLocale()
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
@@ -48,10 +51,10 @@ export function Layout() {
   return (
     <div className="app">
       <a className="skip" href="#content">
-        До вмісту
+        {t.skipToContent}
       </a>
       {open ? (
-        <button type="button" className="backdrop" aria-label="Закрити меню" onClick={() => setOpen(false)} />
+        <button type="button" className="backdrop" aria-label={t.closeMenu} onClick={() => setOpen(false)} />
       ) : null}
       <aside className={cx('sidebar', open && 'open')}>
         <NavLink to={{ pathname: '/', hash: '' }} className="brand" end>
@@ -63,18 +66,18 @@ export function Layout() {
           </span>
           <span>
             <span className="brand-name">DATABASE</span>
-            <span className="brand-sub">Business & Intelligence</span>
+            <span className="brand-sub">{t.brandSub}</span>
           </span>
         </NavLink>
-        <nav className="nav-scroll" aria-label="Розділи">
-          <p className="nav-label">Огляд</p>
+        <nav className="nav-scroll" aria-label={t.nav.sections}>
+          <p className="nav-label">{t.nav.overview}</p>
           <NavLink to={{ pathname: '/', hash: '' }} end className={({ isActive }) => cx('nav-link', isActive && 'active')}>
-            Каталог
+            {t.nav.catalog}
           </NavLink>
           <NavLink to="/dashboard" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
-            Панель
+            {t.nav.dashboard}
           </NavLink>
-          <p className="nav-label">Розділи</p>
+          <p className="nav-label">{t.nav.sections}</p>
           {portal.loading && sections.length === 0 ? (
             <div className="nav-skeleton" aria-hidden="true">
               <span />
@@ -90,37 +93,37 @@ export function Layout() {
                 title={section.section}
               >
                 <span className="nav-text">{section.label}</span>
-                {auth.role === 'owner' ? <span className="nav-vis">{shortVisibility(section.visible_to)}</span> : null}
+                {auth.role === 'owner' ? <span className="nav-vis">{shortVisibility(section.visible_to, t)}</span> : null}
               </NavLink>
             ))
           )}
-          <p className="nav-label">Журнал</p>
+          <p className="nav-label">{t.nav.journal}</p>
           <NavLink to="/reports" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
-            Звіти
+            {t.nav.reports}
           </NavLink>
           <NavLink to="/history" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
-            Історія оновлень
+            {t.nav.history}
           </NavLink>
           <NavLink to="/archive" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
-            Архів
+            {t.nav.archive}
           </NavLink>
           {auth.role === 'owner' ? (
             <>
-              <p className="nav-label">Керування</p>
+              <p className="nav-label">{t.nav.manage}</p>
               <NavLink to="/admin" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
-                Адміністрування
+                {t.nav.admin}
               </NavLink>
             </>
           ) : null}
         </nav>
         <div className="side-foot">
-          <span className={`role-pill role-${auth.role}`}>{auth.ready ? roleLabel(auth.role) : '…'}</span>
-          <span className="side-note">{auth.email ?? 'Без входу · каталог відкритий'}</span>
+          <span className={`role-pill role-${auth.role}`}>{auth.ready ? roleLabel(auth.role, locale) : '…'}</span>
+          <span className="side-note">{auth.email ?? t.guestOpen}</span>
         </div>
       </aside>
       <div className="maincol">
         <header className="topbar">
-          <button type="button" className="icon-btn menu-btn" aria-label="Меню" onClick={() => setOpen(true)}>
+          <button type="button" className="icon-btn menu-btn" aria-label={t.menu} onClick={() => setOpen(true)}>
             <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
               <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
             </svg>
@@ -135,7 +138,7 @@ export function Layout() {
             }}
           >
             <label className="sr-only" htmlFor="global-search">
-              Пошук по всіх записах
+              {t.searchAria}
             </label>
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
               <circle cx="11" cy="11" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.7" />
@@ -145,16 +148,17 @@ export function Layout() {
               id="global-search"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Пошук по всіх записах"
+              placeholder={t.searchPlaceholder}
               type="search"
             />
           </form>
+          <LanguageSwitcher />
           <button
             type="button"
             className="icon-btn"
             onClick={toggle}
-            aria-label={theme === 'dark' ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'}
-            title={theme === 'dark' ? 'Світла тема' : 'Темна тема'}
+            aria-label={theme === 'dark' ? t.themeLight : t.themeDark}
+            title={theme === 'dark' ? t.themeLightTitle : t.themeDarkTitle}
           >
             {theme === 'dark' ? (
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -173,12 +177,12 @@ export function Layout() {
                 {auth.email}
               </span>
               <button type="button" className="btn btn-ghost" onClick={() => void auth.signOut()}>
-                Вийти
+                {t.logout}
               </button>
             </div>
           ) : auth.ready ? (
             <NavLink to="/login" className="text-login">
-              Вхід
+              {t.login}
             </NavLink>
           ) : null}
         </header>
@@ -187,20 +191,20 @@ export function Layout() {
             <div className="notice notice-error" role="alert">
               <span>{auth.notice}</span>
               <button type="button" className="btn btn-ghost" onClick={auth.clearNotice}>
-                Закрити
+                {t.close}
               </button>
             </div>
           ) : null}
           {auth.role === 'none' ? (
             <div className="notice notice-error" role="status">
-              Обліковий запис увійшов, але роль не призначено. Зверніться до власника.
+              {t.roleNone}
             </div>
           ) : null}
           {portal.error ? (
             <div className="notice notice-error" role="alert">
-              <span>Не вдалося завантажити дані: {portal.error}</span>
+              <span>{t.loadFailed}: {portal.error}</span>
               <button type="button" className="btn btn-ghost" onClick={portal.reload}>
-                Повторити
+                {t.retry}
               </button>
             </div>
           ) : null}
@@ -211,9 +215,7 @@ export function Layout() {
   )
 }
 
-function shortVisibility(value: string): string {
-  if (value === 'public') return 'публ.'
-  if (value === 'partner') return 'партн.'
-  if (value === 'owner') return 'власн.'
+function shortVisibility(value: string, t: { visibilityShort: { public: string; partner: string; owner: string } }): string {
+  if (value === 'public' || value === 'partner' || value === 'owner') return t.visibilityShort[value]
   return value
 }
