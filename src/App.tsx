@@ -1,6 +1,10 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { Layout } from './components/Layout.tsx'
+import { AccountPage } from './pages/AccountPage.tsx'
+import { ActivityPage } from './pages/ActivityPage.tsx'
 import { AdminPage } from './pages/AdminPage.tsx'
+import { HelpPage } from './pages/HelpPage.tsx'
+import { PipelinePage } from './pages/PipelinePage.tsx'
 import { ArchivePage } from './pages/ArchivePage.tsx'
 import { CatalogPage } from './pages/CatalogPage.tsx'
 import { DashboardPage } from './pages/Dashboard.tsx'
@@ -30,6 +34,10 @@ const router = createBrowserRouter(
         { path: 'archive', element: <ArchivePage /> },
         { path: 'admin', element: <AdminPage /> },
         { path: 'login', element: <LoginPage /> },
+        { path: 'pipeline', element: <PipelinePage /> },
+        { path: 'activity', element: <ActivityPage /> },
+        { path: 'help', element: <HelpPage /> },
+        { path: 'account', element: <AccountPage /> },
         { path: '*', element: <NotFoundPage /> },
       ],
     },

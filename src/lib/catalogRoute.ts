@@ -4,6 +4,7 @@ export type CatalogFilters = {
   country: string
   status: string
   category: string
+  relation?: string
 }
 
 export const EMPTY_CATALOG_FILTERS: CatalogFilters = {
@@ -44,6 +45,7 @@ function readFilters(params: URLSearchParams): CatalogFilters {
     country: params.get('country') ?? '',
     status: params.get('status') ?? '',
     category: params.get('category') ?? '',
+    ...(params.get('rel') ? { relation: params.get('rel') ?? '' } : {}),
   }
 }
 
@@ -54,6 +56,7 @@ function writeFilters(filters: CatalogFilters): string {
   if (filters.country) params.set('country', filters.country)
   if (filters.status) params.set('status', filters.status)
   if (filters.category) params.set('category', filters.category)
+  if (filters.relation) params.set('rel', filters.relation)
   const query = params.toString()
   return query ? `?${query}` : ''
 }
@@ -93,4 +96,9 @@ export function replaceCatalogHash(hash: string): void {
   const url = `${window.location.pathname}${window.location.search}${next}`
   window.history.replaceState(null, '', url)
   window.dispatchEvent(new HashChangeEvent('hashchange'))
+}
+
+/** Catalog detail hash for a record, without list filters. */
+export function detailHash(row: { id: string; languageGroup: string; platform: string }): string {
+  return buildCatalogHash({ kind: 'detail', group: row.languageGroup, platform: row.platform, id: row.id, filters: EMPTY_CATALOG_FILTERS })
 }

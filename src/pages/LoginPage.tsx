@@ -4,6 +4,8 @@ import { PageHeader } from '../components/PageHeader.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 import { useT } from '../context/LocaleContext.tsx'
 import { authRedirectTo } from '../lib/supabase.ts'
+import { useLocale } from '../context/LocaleContext.tsx'
+import { crmMessages } from '../i18n/crm.ts'
 
 export function LoginPage() {
   const auth = useAuth()
@@ -15,6 +17,23 @@ export function LoginPage() {
   const [info, setInfo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [inviteOnly, setInviteOnly] = useState(false)
+  const [password, setPassword] = useState('')
+  const { locale } = useLocale()
+  const cm = crmMessages(locale)
+
+  async function signInPassword(event: FormEvent) {
+    event.preventDefault()
+    setPending('code')
+    setError(null)
+    setInfo(null)
+    const result = await auth.signInPassword(email, password)
+    setPending(null)
+    if (result.error) {
+      setError(result.error)
+      return
+    }
+    navigate('/')
+  }
 
   async function sendLink() {
     setPending('link')
@@ -92,6 +111,24 @@ export function LoginPage() {
     <>
       <PageHeader title={t.auth.title} meta={t.auth.meta} />
       <section className="login-card panel">
+        <form onSubmit={(event) => void signInPassword(event)} className="stack">
+          <h2>{cm.account.passwordLogin}</h2>
+          <label className="field">
+            <span>{t.auth.email}</span>
+            <input type="email" required autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" />
+          </label>
+          <label className="field">
+            <span>{cm.account.passwordField}</span>
+            <input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          </label>
+          <div className="page-actions">
+            <button className="btn btn-primary" type="submit" disabled={pending !== null || !email.trim() || !password}>
+              {cm.account.signIn}
+            </button>
+          </div>
+          <p className="desc">{cm.account.passwordHint}</p>
+        </form>
+        <p className="login-or">{cm.account.or}</p>
         <form
           onSubmit={(event) => void verify(event)}
           className="stack"

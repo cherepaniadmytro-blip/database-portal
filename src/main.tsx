@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
 import { CatalogProvider } from './context/CatalogData.tsx'
+import { CrmProvider } from './context/CrmData.tsx'
 import { PortalDataProvider } from './context/PortalData.tsx'
 import { LocaleProvider } from './context/LocaleContext.tsx'
 import { ThemeProvider } from './context/ThemeContext.tsx'
@@ -18,7 +19,9 @@ createRoot(root).render(
       <AuthProvider>
         <PortalDataProvider>
           <CatalogProvider>
-            <App />
+            <CrmProvider>
+              <App />
+            </CrmProvider>
           </CatalogProvider>
         </PortalDataProvider>
       </AuthProvider>
