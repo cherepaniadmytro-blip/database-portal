@@ -39,6 +39,15 @@
           document.documentElement.setAttribute('data-theme', 'light')
         }
       })()
+      ;(function () {
+        try {
+          var l = localStorage.getItem('database-portal-locale')
+          if (l !== 'uk' && l !== 'sk') l = 'uk'
+          document.documentElement.setAttribute('lang', l)
+        } catch (e) {
+          document.documentElement.setAttribute('lang', 'uk')
+        }
+      })()
     </script>
   </head>
   <body>

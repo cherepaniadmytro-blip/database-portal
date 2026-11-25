@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.tsx'
+import { useT } from '../context/LocaleContext.tsx'
 import { formatDateTime } from '../lib/records.ts'
 import { supabase } from '../lib/supabase.ts'
 
@@ -10,6 +11,7 @@ type OwnerNote = {
 
 export function OwnerNotes({ id }: { id: string }) {
   const auth = useAuth()
+  const t = useT()
   const [note, setNote] = useState<OwnerNote | null>(null)
 
   useEffect(() => {
@@ -40,9 +42,9 @@ export function OwnerNotes({ id }: { id: string }) {
 
   return (
     <section className="panel">
-      <h2>Приватні нотатки</h2>
+      <h2>{t.notes.title}</h2>
       <p className="lead">{note.notes}</p>
-      {note.updatedAt ? <p className="desc">Оновлено {formatDateTime(note.updatedAt)}</p> : null}
+      {note.updatedAt ? <p className="desc">{t.notes.updated(formatDateTime(note.updatedAt))}</p> : null}
     </section>
   )
 }

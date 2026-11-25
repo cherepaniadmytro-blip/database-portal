@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
+import { useLocale } from '../context/LocaleContext.tsx'
 import { usePortal } from '../context/PortalData.tsx'
 import { syncStatusLabel, visibilityLabel } from '../lib/labels.ts'
 import { formatDateTime } from '../lib/records.ts'
@@ -13,6 +14,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export function AdminPage() {
   const auth = useAuth()
   const portal = usePortal()
+  const { locale, t } = useLocale()
   const [invites, setInvites] = useState<InviteRow[]>([])
   const [syncRows, setSyncRows] = useState<SyncStatusRow[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +41,7 @@ export function AdminPage() {
     if (auth.role !== 'owner') return
     let cancel = false
     loadAdmin().catch((err: unknown) => {
-      if (!cancel) setError(err instanceof Error ? err.message : 'Не вдалося завантажити адміністрування')
+      if (!cancel) setError(err instanceof Error ? err.message : t.admin.loadFailed)
     })
     return () => {
       cancel = true
@@ -49,8 +51,8 @@ export function AdminPage() {
   if (auth.role !== 'owner') {
     return (
       <>
-        <PageHeader title="Адміністрування" />
-        <p className="empty">Ця сторінка доступна лише власнику.</p>
+        <PageHeader title={t.admin.title} />
+        <p className="empty">{t.admin.onlyOwner}</p>
       </>
     )
   }
@@ -74,7 +76,7 @@ export function AdminPage() {
       setError(updateError.message)
       return
     }
-    setInfo(`Видимість «${section}» змінено на «${visibilityLabel(visibleTo)}».`)
+    setInfo(t.admin.visibilityChanged(section, visibilityLabel(visibleTo, locale)))
     portal.reload()
   }
 
@@ -82,7 +84,7 @@ export function AdminPage() {
     event.preventDefault()
     const normalized = email.trim().toLowerCase()
     if (!EMAIL_RE.test(normalized)) {
-      setError('Вкажіть коректну ел. пошту.')
+      setError(t.admin.badEmail)
       return
     }
     setSavingInvite(true)
@@ -101,27 +103,27 @@ export function AdminPage() {
     setEmail('')
     setNote('')
     setRole('partner')
-    setInfo(`${normalized} додано з роллю ${role}.`)
+    setInfo(t.admin.invited(normalized, role === "owner" ? t.roles.owner : t.roles.partner))
     await loadAdmin()
   }
 
   async function removeInvite(target: string) {
-    if (!window.confirm(`Прибрати ${target} зі списку запрошень?`)) return
+    if (!window.confirm(t.admin.confirmRemove(target))) return
     setError(null)
     const { error: deleteError } = await supabase.from('invited_emails').delete().eq('email', target)
     if (deleteError) {
       setError(deleteError.message)
       return
     }
-    setInfo(`${target} прибрано.`)
+    setInfo(t.admin.removed(target))
     await loadAdmin()
   }
 
   return (
     <>
       <PageHeader
-        title="Адміністрування"
-        meta="Видимість розділів, запрошення та стан синхронізації. Зміни йдуть у Supabase від імені власника."
+        title={t.admin.title}
+        meta={t.admin.meta}
       />
       {error ? (
         <p className="notice notice-error" role="alert">
@@ -131,14 +133,14 @@ export function AdminPage() {
       {info ? <p className="notice notice-ok">{info}</p> : null}
 
       <section className="panel admin-block">
-        <h2>Видимість розділів</h2>
+        <h2>{t.admin.sectionVisibility}</h2>
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Розділ</th>
-                <th>Ключ</th>
-                <th>Видимість</th>
+                <th>{t.admin.section}</th>
+                <th>{t.admin.key}</th>
+                <th>{t.admin.visibility}</th>
               </tr>
             </thead>
             <tbody>
@@ -148,7 +150,7 @@ export function AdminPage() {
                   <td className="mono">{section.section}</td>
                   <td>
                     <select
-                      aria-label={`Видимість ${section.label}`}
+                      aria-label={t.admin.visibilityOf(section.label)}
                       value={visibilityOverride[section.section] ?? section.visible_to}
                       disabled={pendingSection === section.section}
                       onChange={(event) => {
@@ -160,7 +162,7 @@ export function AdminPage() {
                     >
                       {VISIBILITIES.map((value) => (
                         <option key={value} value={value}>
-                          {visibilityLabel(value)}
+                          {visibilityLabel(value, locale)}
                         </option>
                       ))}
                     </select>
@@ -173,35 +175,35 @@ export function AdminPage() {
       </section>
 
       <section className="panel admin-block">
-        <h2>Запрошені адреси</h2>
+        <h2>{t.admin.invites}</h2>
         <form className="invite-form" onSubmit={(event) => void addInvite(event)}>
           <label className="field field-grow">
-            <span>Ел. пошта</span>
+            <span>{t.admin.email}</span>
             <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="partner@example.com" />
           </label>
           <label className="field">
-            <span>Роль</span>
+            <span>{t.admin.role}</span>
             <select value={role} onChange={(event) => setRole(event.target.value === 'owner' ? 'owner' : 'partner')}>
-              <option value="partner">Партнер</option>
-              <option value="owner">Власник</option>
+              <option value="partner">{t.roles.partner}</option>
+              <option value="owner">{t.roles.owner}</option>
             </select>
           </label>
           <label className="field field-grow">
-            <span>Нотатка</span>
-            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="необов’язково" />
+            <span>{t.admin.note}</span>
+            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder={t.admin.notePlaceholder} />
           </label>
           <button className="btn btn-primary" type="submit" disabled={savingInvite}>
-            {savingInvite ? 'Збереження…' : 'Додати'}
+            {savingInvite ? t.admin.saving : t.admin.add}
           </button>
         </form>
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Пошта</th>
-                <th>Роль</th>
-                <th>Запрошено</th>
-                <th>Нотатка</th>
+                <th>{t.admin.mail}</th>
+                <th>{t.admin.role}</th>
+                <th>{t.admin.invitedAt}</th>
+                <th>{t.admin.note}</th>
                 <th />
               </tr>
             </thead>
@@ -209,19 +211,19 @@ export function AdminPage() {
               {invites.length === 0 ? (
                 <tr>
                   <td className="empty-cell" colSpan={5}>
-                    Список порожній.
+                    {t.admin.emptyInvites}
                   </td>
                 </tr>
               ) : (
                 invites.map((invite) => (
                   <tr key={invite.email}>
                     <td className="mono">{invite.email}</td>
-                    <td>{invite.role === 'owner' ? 'Власник' : 'Партнер'}</td>
+                    <td>{invite.role === "owner" ? t.roles.owner : t.roles.partner}</td>
                     <td>{formatDateTime(invite.invited_at)}</td>
                     <td>{invite.note || '—'}</td>
                     <td>
                       <button type="button" className="btn btn-danger" onClick={() => void removeInvite(invite.email)}>
-                        Прибрати
+                        {t.admin.remove}
                       </button>
                     </td>
                   </tr>
@@ -233,9 +235,9 @@ export function AdminPage() {
       </section>
 
       <section className="panel admin-block">
-        <h2>Синхронізація</h2>
+        <h2>{t.admin.sync}</h2>
         {syncRows.length === 0 ? (
-          <p className="empty">Немає рядків sync_status.</p>
+          <p className="empty">{t.admin.noSync}</p>
         ) : (
           <div className="sync-admin">
             {syncRows.map((row) => (
@@ -243,27 +245,27 @@ export function AdminPage() {
                 <header>
                   <strong className="mono">{row.source}</strong>
                   <span className={`mark ${row.status === 'ok' ? 'mark-new' : row.status === 'error' ? 'mark-updated' : 'mark-neutral'}`}>
-                    {syncStatusLabel(row.status)}
+                    {syncStatusLabel(row.status, locale)}
                   </span>
                 </header>
                 <dl className="rail-facts">
                   <div>
-                    <dt>Остання спроба</dt>
+                    <dt>{t.admin.lastAttempt}</dt>
                     <dd>{formatDateTime(row.last_attempt_at)}</dd>
                   </div>
                   <div>
-                    <dt>Останній успіх</dt>
+                    <dt>{t.admin.lastSuccess}</dt>
                     <dd>{formatDateTime(row.last_success_at)}</dd>
                   </div>
                   <div>
-                    <dt>Рядків</dt>
+                    <dt>{t.admin.rowCount}</dt>
                     <dd>{row.records_synced ?? '—'}</dd>
                   </div>
                 </dl>
                 {row.error ? <p className="notice notice-error">{row.error}</p> : null}
                 {row.details ? (
                   <details>
-                    <summary>Деталі</summary>
+                    <summary>{t.admin.details}</summary>
                     <pre>{JSON.stringify(row.details, null, 2)}</pre>
                   </details>
                 ) : null}

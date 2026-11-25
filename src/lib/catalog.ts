@@ -1,3 +1,5 @@
+import { entityLabel, formatCatalogLabel, recordsWord } from '../i18n/index.ts'
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales.ts'
 import { normStatus, priorityWeight } from './records.ts'
 
 /**
@@ -155,79 +157,6 @@ const PLATFORM_ALIASES: Record<string, string> = {
   unknown: 'інші',
 }
 
-const DISPLAY: Record<string, string> = {
-  українськомовні: 'Українськомовні',
-  російськомовні: 'Російськомовні',
-  польські: 'Польські',
-  арабські: 'Арабські',
-  турецькомовні: 'Турецькомовні',
-  болгарські: 'Болгарські',
-  словацькі: 'Словацькі',
-  румунські: 'Румунські',
-  чеські: 'Чеські',
-  німецькомовні: 'Німецькомовні',
-  угорські: 'Угорські',
-  хорватські: 'Хорватські',
-  сербські: 'Сербські',
-  боснійські: 'Боснійські',
-  курдські: 'Курдські',
-  албанські: 'Албанські',
-  італійські: 'Італійські',
-  грецькі: 'Грецькі',
-  данські: 'Данські',
-  англомовні: 'Англомовні',
-  сорбські: 'Сорбські',
-  фризькі: 'Фризькі',
-  "в'єтнамські": "В'єтнамські",
-  іспанські: 'Іспанські',
-  португальські: 'Португальські',
-  китайські: 'Китайські',
-  індійські: 'Індійські',
-  перські: 'Перські',
-  багатомовні: 'Багатомовні',
-  'офіційна статистика': 'Офіційна статистика',
-  'преса / радіо / тб': 'Преса / радіо / ТБ',
-  Website: 'Сайт / медіа',
-  'Official statistics': 'Офіційна статистика',
-  'Print/Radio/TV': 'Преса / радіо / ТБ',
-  Ukrainian: 'Українськомовні',
-  'Russian-speaking': 'Російськомовні',
-  Polish: 'Польськомовні',
-  'Arabic-speaking': 'Арабомовні',
-  Turkish: 'Турецькомовні',
-  Bulgarian: 'Болгарські',
-  'Czech/Slovak': 'Чеські / словацькі',
-  Romanian: 'Румунськомовні',
-  'German-speaking': 'Німецькомовні',
-  Hungarian: 'Угорські',
-  Kurdish: 'Курдські',
-  Albanian: 'Албанські',
-  Greek: 'Грецькі',
-  Italian: 'Італійські',
-  Vietnamese: "В'єтнамські",
-  'Persian/Dari': 'Перськомовні (Іран, Афганістан)',
-  Spanish: 'Іспаномовні',
-  Portuguese: 'Португаломовні',
-  Chinese: 'Китайські',
-  Indian: 'Індійські',
-  Multilingual: 'Багатомовні',
-  'English / international': 'Англомовні / міжнародні',
-  'BCMS (Croatian/Serbian/Bosnian)': 'Хорватські / сербські / боснійські',
-  'Danish/Sorbian/Frisian minorities': 'Нацменшини (данці, сорби, фризи)',
-  'Not applicable': 'Інше / не спільноти',
-  інші: 'Інші',
-  Facebook: 'Facebook',
-  YouTube: 'YouTube',
-  Telegram: 'Telegram',
-  Instagram: 'Instagram',
-  TikTok: 'TikTok',
-  'сайт/медіа': 'Сайт / медіа',
-  блогер: 'Блогер',
-  агенція: 'Агенція',
-  організація: 'Організація',
-  консультант: 'Консультант',
-}
-
 const LANGUAGE_RULES: Array<{ label: string; re: RegExp }> = [
   { label: 'українськомовні', re: /україн|ukrain|\buk\b/i },
   { label: 'російськомовні', re: /росі|рус|russian|\bru\b/i },
@@ -355,49 +284,19 @@ export function platformKey(value: string | null | undefined): string {
   return PLATFORM_KEYS[text.toLowerCase()] ?? text
 }
 
-export function recordsLabel(count: number): string {
-  const mod10 = count % 10
-  const mod100 = count % 100
-  if (mod10 === 1 && mod100 !== 11) return 'запис'
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'записи'
-  return 'записів'
+export function recordsLabel(count: number, locale: Locale = DEFAULT_LOCALE): string {
+  return recordsWord(count, locale)
 }
 
-const ENTITY_LABELS: Record<string, string> = {
-  'financial / tax consultant': 'Фінансовий / податковий консультант',
-  'community organisation / ngo': 'Громадська організація',
-  'staffing agency': 'Агенція з працевлаштування',
-  'blogger / creator': 'Блогер',
-  'facebook group': 'Група Facebook',
-  'business opportunity': 'Бізнес-можливість',
-  'statistics / research': 'Статистика / дослідження',
-  'school / education': 'Школа / освіта',
-  'telegram channel/chat': 'Telegram-канал / чат',
-  'media / portal': 'Медіа / портал',
-  knowledge: 'База знань',
-  'religious organisation': 'Релігійна організація',
-  source: 'Джерело',
-  'tool / service': 'Інструмент / сервіс',
-  'project / idea': 'Проєкт / ідея',
-  other: 'Інше',
-  'business association': 'Бізнес-асоціація',
-  'consulate / official': 'Консульство / офіційна установа',
-  'job / gig': 'Робота / підробіток',
-}
-
-export function displayEntity(value: string | null): string | null {
+export function displayEntity(value: string | null, locale: Locale = DEFAULT_LOCALE): string | null {
   if (!value) return null
-  return ENTITY_LABELS[value.trim().toLowerCase()] ?? value
+  return entityLabel(value, locale)
 }
 
-export function displayLabel(key: string): string {
-  if (isNonCommunity(key)) return NON_COMMUNITY_LABEL
-  if (isOtherKey(key)) return 'Інші'
-  if (DISPLAY[key]) return DISPLAY[key]
-  return key
-    .split(' / ')
-    .map((part) => (part ? part.charAt(0).toLocaleUpperCase('uk') + part.slice(1) : part))
-    .join(' / ')
+export function displayLabel(key: string, locale: Locale = DEFAULT_LOCALE): string {
+  if (isNonCommunity(key)) return formatCatalogLabel('Not applicable', locale)
+  if (isOtherKey(key)) return formatCatalogLabel('інші', locale)
+  return formatCatalogLabel(key, locale)
 }
 
 export function deriveLanguageGroup(community: string | null, nationality: string | null): string {

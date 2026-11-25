@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.tsx'
+import { useT } from '../context/LocaleContext.tsx'
 
 export function NotFoundPage() {
+  const t = useT()
   return (
     <>
-      <PageHeader title="Сторінку не знайдено" />
-      <p className="empty">Такої адреси в порталі немає.</p>
+      <PageHeader title={t.notFound.title} />
+      <p className="empty">{t.notFound.body}</p>
       <Link to="/" className="text-link">
-        На каталог
+        {t.notFound.toCatalog}
       </Link>
     </>
   )

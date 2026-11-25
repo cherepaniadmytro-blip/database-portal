@@ -46,6 +46,18 @@ export function isInviteOnlyError(error: { message?: string; code?: string } | n
   )
 }
 
+export function isRateLimitError(error: { message?: string; code?: string } | null | undefined): boolean {
+  if (!error) return false
+  const message = (error.message ?? '').toLowerCase()
+  const code = (error.code ?? '').toLowerCase()
+  return (
+    code === 'over_email_send_rate_limit' ||
+    message.includes('over_email_send_rate_limit') ||
+    message.includes('email rate limit exceeded') ||
+    message.includes('email rate limit')
+  )
+}
+
 type PageResult<T> = { data: T[] | null; error: { message: string } | null }
 
 export async function fetchAll<T>(
