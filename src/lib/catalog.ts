@@ -1,6 +1,7 @@
 import { entityLabel, formatCatalogLabel, recordsWord } from '../i18n/index.ts'
 import { DEFAULT_LOCALE, type Locale } from '../i18n/locales.ts'
 import { normStatus, priorityWeight } from './records.ts'
+import { isChannel, isRelation, type Channel, type Relation } from './crm.ts'
 
 /**
  * public_records (live): id, category, category_label, subcategory, title, name,
@@ -30,6 +31,8 @@ export const GROUP_ORDER = [
   'турецькомовні',
   'Bulgarian',
   'болгарські',
+  'Czech',
+  'Slovak',
   'Czech/Slovak',
   'словацькі',
   'чеські / словацькі',
@@ -223,6 +226,15 @@ export type PublicRecord = {
   syncedAt: string | null
   languageFromColumn: boolean
   platformFromColumn: boolean
+  /** Effective relation type (team decision or automatic suggestion). */
+  relationType: Relation | null
+  suggestedRelationType: Relation | null
+  relationReason: string | null
+  bestChannel: Channel | null
+  channelReason: string | null
+  /** Verified country / reach (geo_scope); falls back to the raw country column. */
+  geoScope: string | null
+  languageGroupLabelSk: string | null
 }
 
 export type FacetRow = {
@@ -247,9 +259,11 @@ export type CatalogModel = {
 export type CatalogListFilters = {
   q: string
   city: string
+  /** Matches geoScope (verified country / reach). */
   country: string
   status: string
   category: string
+  relation?: string
 }
 
 export function isUnsetClassification(value: string | null | undefined): boolean {
@@ -442,6 +456,13 @@ export function normalizeCatalogRow(raw: Record<string, unknown>): PublicRecord 
     syncedAt: pickText(raw, ['synced_at', 'syncedAt']),
     languageFromColumn: groupBucket.fromColumn,
     platformFromColumn: platformBucket.fromColumn,
+    relationType: isRelation(raw.relation_type) ? raw.relation_type : null,
+    suggestedRelationType: isRelation(raw.suggested_relation_type) ? raw.suggested_relation_type : null,
+    relationReason: asText(raw.relation_reason),
+    bestChannel: isChannel(raw.best_channel) ? raw.best_channel : null,
+    channelReason: asText(raw.channel_reason),
+    geoScope: asText(raw.geo_scope) ?? asText(raw.country),
+    languageGroupLabelSk: asText(raw.language_group_label_sk),
   }
 }
 
@@ -643,7 +664,8 @@ export function filterCatalog(rows: PublicRecord[], filters: CatalogListFilters)
   const query = filters.q.trim().toLowerCase()
   return rows.filter((row) => {
     if (filters.city && (row.place ?? '') !== filters.city) return false
-    if (filters.country && (row.country ?? '') !== filters.country) return false
+    if (filters.country && (row.geoScope ?? '') !== filters.country) return false
+    if (filters.relation && (row.relationType ?? '') !== filters.relation) return false
     if (filters.status && normStatus(row.status) !== normStatus(filters.status)) return false
     if (filters.category && row.category !== filters.category) return false
     if (query && !haystack(row).includes(query)) return false
@@ -651,7 +673,7 @@ export function filterCatalog(rows: PublicRecord[], filters: CatalogListFilters)
   })
 }
 
-export function distinctText(rows: PublicRecord[], key: 'place' | 'country' | 'city'): string[] {
+export function distinctText(rows: PublicRecord[], key: 'place' | 'country' | 'city' | 'geoScope'): string[] {
   const values = new Set<string>()
   for (const row of rows) {
     const value = row[key]

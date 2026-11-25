@@ -873,3 +873,83 @@ pre {
 @media (max-width: 420px) {
   .catalog-grid { grid-template-columns: 1fr; }
 }
+
+/* ---------- CRM-lite: relation badges, pipeline, timeline, letter dialog ---------- */
+.detail > .workflow-panel { grid-column: 1; }
+.detail > .rail { grid-column: 2; grid-row: 1 / span 2; }
+@media (max-width: 1100px) {
+  .detail > .workflow-panel, .detail > .rail { grid-column: auto; grid-row: auto; }
+}
+.rel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.rel-client { color: #7a2e8c; background: #f6e9fa; }
+.rel-partner { color: #0d5c63; background: #e2f4f5; }
+.rel-media { color: #8a4b00; background: #fdf0de; }
+.rel-job { color: #31508f; background: #e8eefb; }
+.rel-info { color: var(--muted); background: transparent; border-color: var(--line); }
+html[data-theme='dark'] .rel-client { color: #e2b6ef; background: #33203a; }
+html[data-theme='dark'] .rel-partner { color: #a6e1e5; background: #15302f; }
+html[data-theme='dark'] .rel-media { color: #f2c98f; background: #382714; }
+html[data-theme='dark'] .rel-job { color: #b9c9f2; background: #1b2540; }
+.catalog-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 8px; vertical-align: middle; }
+.catalog-geo { color: var(--muted); font-size: 12px; }
+.workflow-status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.workflow-form { margin-top: 4px; }
+.interaction-log { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.interaction-log h3 { font-size: 14px; margin: 8px 0; }
+.timeline { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.timeline-item {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+}
+.timeline-item.dir-out { border-left-color: #2f6fca; margin-right: 12%; }
+.timeline-item.dir-in { border-left-color: #1f8a52; margin-left: 12%; }
+.timeline-item.dir-note { border-left-color: #c79a12; }
+.timeline-meta { font-size: 12px; color: var(--muted); }
+.timeline-text { white-space: pre-wrap; margin: 4px 0 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.tab {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+.tab.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); font-weight: 600; }
+.tab-count { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: 4px; }
+.checkbox-field { flex-direction: row; align-items: center; gap: 6px; }
+.pipeline { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 1fr); gap: 10px; overflow-x: auto; padding-bottom: 8px; }
+.pipeline-col { border: 1px solid var(--line); border-top: 4px solid var(--line); border-radius: 10px; padding: 8px; background: var(--surface); min-height: 120px; }
+.pipeline-col.tone-red { border-top-color: #d9480f; }
+.pipeline-col.tone-yellow { border-top-color: #e0a800; }
+.pipeline-col.tone-blue { border-top-color: #2f6fca; }
+.pipeline-col.tone-green { border-top-color: #1f8a52; }
+.pipeline-col.tone-grey { border-top-color: #9a948a; }
+.pipeline-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.pipeline-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pipeline-card { display: grid; gap: 2px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 13px; }
+.pipeline-card .desc { font-size: 12px; }
+.legend { display: grid; gap: 8px; margin: 0; }
+.legend > div { display: grid; grid-template-columns: minmax(180px, 240px) 1fr; gap: 10px; align-items: start; }
+.legend dd { margin: 0; }
+@media (max-width: 640px) { .legend > div { grid-template-columns: 1fr; } }
+.letter-dialog { width: min(760px, 94vw); border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--surface); color: var(--ink); }
+.letter-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.letter-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.letter-head h2 { font-size: 16px; margin: 0; }
+.letter-text { width: 100%; font: inherit; line-height: 1.5; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg, var(--surface)); color: var(--ink); }
+.login-or { text-align: center; color: var(--muted); margin: 12px 0; }

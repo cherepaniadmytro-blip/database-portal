@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
+import { useCrm } from '../context/CrmData.tsx'
+import { crmMessages } from '../i18n/crm.ts'
 import { useLocale } from '../context/LocaleContext.tsx'
 import { usePortal } from '../context/PortalData.tsx'
 import { useTheme } from '../context/ThemeContext.tsx'
@@ -16,6 +18,8 @@ export function Layout() {
   const auth = useAuth()
   const portal = usePortal()
   const { locale, t } = useLocale()
+  const crm = useCrm()
+  const cm = crmMessages(locale)
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
@@ -77,6 +81,25 @@ export function Layout() {
           <NavLink to="/dashboard" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
             {t.nav.dashboard}
           </NavLink>
+          <NavLink to="/help" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
+            {cm.nav.help}
+          </NavLink>
+          {crm.canEdit ? (
+            <>
+              <p className="nav-label">{cm.nav.work}</p>
+              <NavLink to="/pipeline" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
+                {cm.nav.pipeline}
+              </NavLink>
+              <NavLink to="/activity" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
+                {cm.nav.activity}
+              </NavLink>
+            </>
+          ) : null}
+          {auth.session ? (
+            <NavLink to="/account" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
+              {cm.nav.account}
+            </NavLink>
+          ) : null}
           <p className="nav-label">{t.nav.sections}</p>
           {portal.loading && sections.length === 0 ? (
             <div className="nav-skeleton" aria-hidden="true">

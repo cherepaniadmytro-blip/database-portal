@@ -14,6 +14,7 @@ type AuthValue = {
   clearNotice: () => void
   sendLink: (email: string) => Promise<AuthResult>
   verifyCode: (email: string, token: string) => Promise<AuthResult>
+  signInPassword: (email: string, password: string) => Promise<AuthResult>
   signOut: () => Promise<void>
 }
 
@@ -89,6 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return describe(error)
   }, [])
 
+  const signInPassword = useCallback(async (email: string, password: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
+    return describe(error)
+  }, [])
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
   }, [])
@@ -103,9 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearNotice: () => setNotice(null),
       sendLink,
       verifyCode,
+      signInPassword,
       signOut,
     }),
-    [ready, session, role, notice, sendLink, verifyCode, signOut],
+    [ready, session, role, notice, sendLink, verifyCode, signInPassword, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

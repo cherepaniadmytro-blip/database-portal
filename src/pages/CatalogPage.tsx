@@ -25,6 +25,11 @@ import {
 } from '../lib/catalogRoute.ts'
 import { formatDateTime, formatDay, formatMaybeNumber, formatNumber, safeUrl } from '../lib/records.ts'
 import { OwnerNotes } from '../components/OwnerNotes.tsx'
+import { OutreachBadge, RelationBadge } from '../components/CrmBadges.tsx'
+import { WorkflowPanel } from '../components/WorkflowPanel.tsx'
+import { useCrm } from '../context/CrmData.tsx'
+import { crmMessages, geoLabel } from '../i18n/crm.ts'
+import { PIPELINE_RELATIONS, RELATIONS } from '../lib/crm.ts'
 
 function useCatalogStep(): CatalogStep {
   const [hash, setHash] = useState(() => window.location.hash)
@@ -190,14 +195,21 @@ function ListStep({
   rows: PublicRecord[]
 }) {
   const scoped = rows.filter((row) => row.languageGroup === group && row.platform === platform)
-  const filtered = sortCatalog(filterCatalog(scoped, filters))
   const cities = distinctText(scoped, 'place')
-  const countries = distinctText(scoped, 'country')
+  const crm = useCrm()
+  const withRelation = scoped.map((row) => {
+    const relation = crm.workflows.get(row.id)?.relationType
+    return relation && relation !== row.relationType ? { ...row, relationType: relation } : row
+  })
+  const countries = distinctText(scoped, 'geoScope')
   const statuses = distinctStatuses(scoped)
   const categories = distinctCategories(scoped)
+  const filtered = sortCatalog(filterCatalog(withRelation, filters))
   const parent = buildCatalogHash({ kind: 'platforms', group })
-  const active = Boolean(filters.q || filters.city || filters.country || filters.status || filters.category)
+  const active = Boolean(filters.q || filters.city || filters.country || filters.status || filters.category || filters.relation)
   const { locale, t } = useLocale()
+  const cm = crmMessages(locale)
+  const relations = RELATIONS.filter((value) => withRelation.some((row) => row.relationType === value))
 
   function setFilter(patch: Partial<CatalogFilters>) {
     replaceCatalogHash(
@@ -251,7 +263,7 @@ function ListStep({
             <option value="">{t.all}</option>
             {countries.map((country) => (
               <option key={country} value={country}>
-                {country}
+                {geoLabel(locale, country)}
               </option>
             ))}
           </select>
@@ -278,8 +290,19 @@ function ListStep({
             ))}
           </select>
         </label>
+        <label className="field">
+          <span>{cm.f.relation}</span>
+          <select value={filters.relation ?? ''} onChange={(event) => setFilter({ relation: event.target.value })}>
+            <option value="">{t.all}</option>
+            {relations.map((value) => (
+              <option key={value} value={value}>
+                {cm.relation[value]}
+              </option>
+            ))}
+          </select>
+        </label>
         {active ? (
-          <button type="button" className="btn btn-ghost filter-reset" onClick={() => setFilter({ q: '', city: '', country: '', status: '', category: '' })}>
+          <button type="button" className="btn btn-ghost filter-reset" onClick={() => setFilter({ q: '', city: '', country: '', status: '', category: '', relation: '' })}>
             {t.reset}
           </button>
         ) : null}
@@ -304,8 +327,21 @@ function ListStep({
                   href={buildCatalogHash({ kind: 'detail', group, platform, id: row.id, filters })}
                 >
                   <span className="catalog-rank">{index + 1}</span>
-                  <span className="catalog-name">{row.name}</span>
-                  <span className="catalog-city">{row.place || '—'}</span>
+                  <span className="catalog-name">
+                    {row.name}
+                    <span className="catalog-badges">
+                      <RelationBadge relation={row.relationType} />
+                      {crm.canEdit && crm.workflows.get(row.id) && row.relationType && PIPELINE_RELATIONS.includes(row.relationType) ? (
+                        <OutreachBadge status={crm.workflows.get(row.id)?.status} />
+                      ) : null}
+                    </span>
+                  </span>
+                  <span className="catalog-city">
+                    {row.place || '—'}
+                    {row.geoScope && row.geoScope !== 'Germany' && row.geoScope !== 'Not applicable' ? (
+                      <span className="catalog-geo"> · {geoLabel(locale, row.geoScope)}</span>
+                    ) : null}
+                  </span>
                   <span className="catalog-aud">
                     <span className="cell-label">{t.catalog.audience}</span>
                     {formatAudience(row.audienceSize)}
@@ -400,7 +436,7 @@ function DetailStep({
             <Fact label={t.catalog.section} value={row.categoryLabel || row.category} />
             <Fact label={t.catalog.subcategory} value={row.subcategory} />
             <Fact label={t.catalog.organization} value={row.organization} />
-            <Fact label={t.catalog.country} value={row.country} />
+            <Fact label={crmMessages(locale).f.geo} value={geoLabel(locale, row.geoScope)} />
             <Fact label={t.catalog.city} value={row.city} />
             <Fact label={t.catalog.region} value={row.cityRegion} />
             <Fact label={t.catalog.audience} value={formatAudience(row.audienceSize)} keep />
@@ -420,6 +456,7 @@ function DetailStep({
             <Fact label={t.catalog.published} value={row.publishedDate ? formatDay(row.publishedDate) : null} />
           </dl>
         </section>
+        <WorkflowPanel row={row} />
         <aside className="rail">
           <section className="panel">
             <h2>{t.catalog.links}</h2>
