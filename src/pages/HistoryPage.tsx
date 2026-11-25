@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { usePortal } from '../context/PortalData.tsx'
 import { useLocale } from '../context/LocaleContext.tsx'
-import { changeTypeLabel } from '../lib/labels.ts'
+import { changeTypeLabel, sectionLabel } from '../lib/labels.ts'
 import { compareHistory } from '../lib/records.ts'
 
 export function HistoryPage() {
@@ -55,7 +55,7 @@ export function HistoryPage() {
             <option value="">{t.all}</option>
             {sections.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {sectionLabel(value, value, locale)}
               </option>
             ))}
           </select>
@@ -99,7 +99,7 @@ export function HistoryPage() {
                   <td className="mono">
                     {item.record_id ? <Link to={`/record/${encodeURIComponent(item.record_id)}`}>{item.record_id}</Link> : '—'}
                   </td>
-                  <td>{item.section || '—'}</td>
+                  <td>{item.section ? sectionLabel(item.section, item.section, locale) : '—'}</td>
                   <td>{changeTypeLabel(item.change_type, locale)}</td>
                   <td className="clip">{item.new_value || '—'}</td>
                   <td>{item.agent || '—'}</td>

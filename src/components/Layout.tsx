@@ -7,7 +7,7 @@ import { crmMessages } from '../i18n/crm.ts'
 import { useLocale } from '../context/LocaleContext.tsx'
 import { usePortal } from '../context/PortalData.tsx'
 import { useTheme } from '../context/ThemeContext.tsx'
-import { roleLabel } from '../lib/labels.ts'
+import { roleLabel, sectionLabel } from '../lib/labels.ts'
 import { canSeeSection } from '../lib/records.ts'
 
 function cx(...parts: Array<string | false | null | undefined>): string {
@@ -90,6 +90,9 @@ export function Layout() {
               <NavLink to="/pipeline" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
                 {cm.nav.pipeline}
               </NavLink>
+              <NavLink to="/stats" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
+                {cm.nav.stats}
+              </NavLink>
               <NavLink to="/activity" className={({ isActive }) => cx('nav-link', isActive && 'active')}>
                 {cm.nav.activity}
               </NavLink>
@@ -115,7 +118,7 @@ export function Layout() {
                 className={({ isActive }) => cx('nav-link', isActive && 'active')}
                 title={section.section}
               >
-                <span className="nav-text">{section.label}</span>
+                <span className="nav-text">{sectionLabel(section.section, section.label, locale)}</span>
                 {auth.role === 'owner' ? <span className="nav-vis">{shortVisibility(section.visible_to, t)}</span> : null}
               </NavLink>
             ))

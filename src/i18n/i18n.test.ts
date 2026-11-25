@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { DEFAULT_LOCALE, LOCALES, isLocale } from './locales.ts'
 import { catalogLabel, entityLabel, formatCatalogLabel, getMessages, recordsWord } from './index.ts'
+import { crmMessages } from './crm.ts'
+import { recordStatusLabel, sectionLabel } from '../lib/labels.ts'
 
 test('only Ukrainian and Slovak are enabled, default is uk', () => {
   assert.deepEqual([...LOCALES], ['uk', 'sk'])
@@ -12,10 +14,22 @@ test('only Ukrainian and Slovak are enabled, default is uk', () => {
   assert.equal(isLocale('en'), false)
 })
 
-test('Slovak catalog has the same message keys as Ukrainian', () => {
+test('Slovak catalog has the same message keys as Ukrainian including sections and CRM', () => {
   const uk = getMessages('uk')
   const sk = getMessages('sk')
   assert.deepEqual(Object.keys(sk), Object.keys(uk))
+  assert.deepEqual(Object.keys(sk.sections), Object.keys(uk.sections))
+  assert.deepEqual(Object.keys(sk.recordStatuses), Object.keys(uk.recordStatuses))
+  assert.equal(sectionLabel('Leads', 'Потенційні клієнти та ліди', 'sk'), 'Potenciálni klienti a leady')
+  assert.equal(sectionLabel('Leads', 'Потенційні клієнти та ліди', 'uk'), 'Потенційні клієнти та ліди')
+  assert.equal(recordStatusLabel('VERIFIED', 'sk'), 'Overené')
+  assert.equal(recordStatusLabel('VERIFIED', 'uk'), 'Перевірено')
+  const crmUk = crmMessages('uk')
+  const crmSk = crmMessages('sk')
+  assert.deepEqual(Object.keys(crmSk), Object.keys(crmUk))
+  assert.deepEqual(Object.keys(crmSk.status), Object.keys(crmUk.status))
+  assert.deepEqual(Object.keys(crmSk.marks), Object.keys(crmUk.marks))
+  assert.deepEqual(Object.keys(crmSk.stats), Object.keys(crmUk.stats))
   assert.equal(typeof sk.auth.rateLimit, 'string')
   assert.ok(sk.auth.rateLimit.length > 10)
   assert.match(uk.auth.sent, /Спам/)
@@ -28,9 +42,12 @@ test('group labels map language_group codes in both locales', () => {
   assert.equal(catalogLabel('Ukrainian', 'sk'), 'Ukrajinsky hovoriace')
   assert.equal(catalogLabel('словацькі', 'sk'), 'Slovenské')
   assert.equal(catalogLabel('Not applicable', 'sk'), 'Iné / nie komunity')
+  assert.equal(catalogLabel('Other', 'sk'), 'Iné')
   assert.equal(formatCatalogLabel('сайт/медіа', 'uk'), 'Сайт / медіа')
   assert.equal(formatCatalogLabel('сайт/медіа', 'sk'), 'Web / médiá')
   assert.equal(entityLabel('staffing agency', 'sk'), 'Agentúra práce')
+  assert.equal(entityLabel('competitor', 'sk'), 'Konkurent')
+  assert.equal(entityLabel('facebook page', 'sk'), 'Stránka na Facebooku')
 })
 
 test('record word follows Slavic plural rules', () => {

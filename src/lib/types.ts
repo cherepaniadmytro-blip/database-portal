@@ -38,6 +38,15 @@ export type RecordRow = {
   duplicate_check: string | null
   sheet_row: number | null
   synced_at: string
+  city?: string | null
+  language_group?: string | null
+  platform?: string | null
+  entity_type?: string | null
+  relation_type?: string | null
+  relation_reason?: string | null
+  best_channel?: string | null
+  channel_reason?: string | null
+  geo_scope?: string | null
 }
 
 export type SectionRow = {

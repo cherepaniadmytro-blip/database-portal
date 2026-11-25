@@ -4,7 +4,7 @@ import { RecordBrowser } from '../components/RecordBrowser.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 import { useLocale } from '../context/LocaleContext.tsx'
 import { usePortal } from '../context/PortalData.tsx'
-import { visibilityLabel } from '../lib/labels.ts'
+import { sectionLabel, visibilityLabel } from '../lib/labels.ts'
 import { canSeeSection, decodeParam } from '../lib/records.ts'
 
 export function SectionPage() {
@@ -28,7 +28,7 @@ export function SectionPage() {
   return (
     <>
       <PageHeader
-        title={meta?.label ?? (portal.loading ? t.section.title : sectionKey)}
+        title={meta ? sectionLabel(meta.section, meta.label, locale) : (portal.loading ? t.section.title : sectionKey)}
         meta={
           meta
             ? t.section.visibilityMeta(meta.section, visibilityLabel(meta.visible_to, locale))

@@ -2,8 +2,10 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { useAuth } from '../context/AuthContext.tsx'
 import { useLocale } from '../context/LocaleContext.tsx'
+import { useCrm } from '../context/CrmData.tsx'
 import { usePortal } from '../context/PortalData.tsx'
-import { syncStatusLabel, visibilityLabel } from '../lib/labels.ts'
+import { displayMemberName } from '../lib/crm.ts'
+import { roleLabel, sectionLabel, syncStatusLabel, visibilityLabel } from '../lib/labels.ts'
 import { formatDateTime } from '../lib/records.ts'
 import { supabase } from '../lib/supabase.ts'
 import type { InviteRow, SyncStatusRow, Visibility } from '../lib/types.ts'
@@ -14,6 +16,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export function AdminPage() {
   const auth = useAuth()
   const portal = usePortal()
+  const crm = useCrm()
+  const [nameDrafts, setNameDrafts] = useState<Record<string, string>>({})
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null)
   const { locale, t } = useLocale()
   const [invites, setInvites] = useState<InviteRow[]>([])
   const [syncRows, setSyncRows] = useState<SyncStatusRow[]>([])
@@ -146,11 +151,11 @@ export function AdminPage() {
             <tbody>
               {portal.sections.map((section) => (
                 <tr key={section.section}>
-                  <td>{section.label}</td>
+                  <td>{sectionLabel(section.section, section.label, locale)}</td>
                   <td className="mono">{section.section}</td>
                   <td>
                     <select
-                      aria-label={t.admin.visibilityOf(section.label)}
+                      aria-label={t.admin.visibilityOf(sectionLabel(section.section, section.label, locale))}
                       value={visibilityOverride[section.section] ?? section.visible_to}
                       disabled={pendingSection === section.section}
                       onChange={(event) => {
@@ -232,6 +237,65 @@ export function AdminPage() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="panel admin-block">
+        <h2>{t.admin.teamNames}</h2>
+        <p className="desc">{t.admin.teamNamesMeta}</p>
+        {crm.team.length === 0 ? (
+          <p className="empty">{t.admin.noTeamMembers}</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>{t.admin.mail}</th>
+                  <th>{t.admin.role}</th>
+                  <th>{t.admin.displayName}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {crm.team.map((member) => {
+                  const value = nameDrafts[member.id] ?? member.display_name ?? ""
+                  return (
+                    <tr key={member.id}>
+                      <td className="mono">{member.email}</td>
+                      <td>{roleLabel(member.role === "owner" ? "owner" : "partner", locale)}</td>
+                      <td>
+                        <input
+                          aria-label={`${t.admin.displayName}: ${member.email}`}
+                          value={value}
+                          maxLength={80}
+                          placeholder={t.admin.displayNamePlaceholder}
+                          onChange={(event) => setNameDrafts((prev) => ({ ...prev, [member.id]: event.target.value }))}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={savingMemberId === member.id}
+                          onClick={async () => {
+                            setSavingMemberId(member.id)
+                            setError(null)
+                            setInfo(null)
+                            const err = await crm.updateDisplayName(value, member.id)
+                            setSavingMemberId(null)
+                            if (err) setError(err)
+                            else setInfo(t.admin.nameSaved(displayMemberName(member.email, value)))
+                          }}
+                        >
+                          {savingMemberId === member.id ? t.admin.saving : t.admin.saveName}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="panel admin-block">

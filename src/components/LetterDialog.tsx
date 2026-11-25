@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale } from '../context/LocaleContext.tsx'
 import { crmMessages } from '../i18n/crm.ts'
-import { TEMPLATE_IDS, defaultTemplate, fillTemplate, type TemplateId, type TemplateLang } from '../lib/crm.ts'
-import type { PublicRecord } from '../lib/catalog.ts'
+import { TEMPLATE_IDS, defaultTemplate, fillTemplate, templateLangFor, type Relation, type TemplateId, type TemplateLang } from '../lib/crm.ts'
 
 const SENDER_KEY = 'database-portal-sender-name'
+
+export type LetterTarget = {
+  name: string
+  city: string | null
+  place: string | null
+  languageGroup: string | null
+  entityType: string | null
+  relationType: Relation | null
+}
 
 /** Copy-only letter preparation. Nothing is sent from the portal. */
 export function LetterDialog({
@@ -12,7 +20,7 @@ export function LetterDialog({
   onClose,
   onMarkDraft,
 }: {
-  row: PublicRecord
+  row: LetterTarget
   onClose: () => void
   onMarkDraft?: (text: string) => void
 }) {
@@ -20,7 +28,7 @@ export function LetterDialog({
   const m = crmMessages(locale)
   const dialog = useRef<HTMLDialogElement>(null)
   const [template, setTemplate] = useState<TemplateId>(() => defaultTemplate(row.relationType, row.entityType))
-  const [lang, setLang] = useState<TemplateLang>('uk')
+  const [lang, setLang] = useState<TemplateLang>(() => templateLangFor(locale))
   const [sender, setSender] = useState(() => {
     try {
       return localStorage.getItem(SENDER_KEY) ?? ''
@@ -96,6 +104,7 @@ export function LetterDialog({
             <span>{m.letter.lang}</span>
             <select value={lang} onChange={(event) => setLang(event.target.value as TemplateLang)}>
               <option value="uk">Українська</option>
+              <option value="sk">Slovenčina</option>
               <option value="de">Deutsch</option>
             </select>
           </label>
